@@ -516,8 +516,16 @@ static const char * LEX_get_token_type_descriptor (const LEX_token_type_t k_toke
 
 static void LEX_fsm_report (void)
 {
-	LEX_DBG("Received char [%c] in state %-30s\t[row: %03u, column %03u]\n", 
-						lex_info.c_current_char, 
+	char pc_buff[3] = {lex_info.c_current_char, '\0', '\0'};
+
+	switch (lex_info.c_current_char)
+	{
+		case '\n': {strncpy(pc_buff, "\\n", 3); break;}
+		case '\t': {strncpy(pc_buff, "\\t", 3); break;}
+	}
+
+	LEX_DBG("Received char [%s] in state %-30s\t[row: %03u, column %03u]\n", 
+						pc_buff, 
 						lex_info.p_state->descriptor, 
 						lex_info.u32_row, 
 						lex_info.u32_column);

@@ -66,6 +66,7 @@ static PARSE_node_t * 				PARSE_factor			(void);
 static void 						PARSE_traverse_tree		(const PARSE_node_t *p_node, uint32_t u32_level, uint8_t side);
 static void 						PARSE_consume_token		(void);
 static inline LEX_token_t * 		PARSE_get_current_token	(void);
+static inline LEX_token_t * 		PARSE_get_next_token	(void);
 static inline PARSE_node_t *		PARSE_create_node		(LEX_token_t * p_token, PARSE_node_t * p_left, PARSE_node_t * p_right);
 
 /****************************************************************************************************
@@ -154,6 +155,15 @@ static inline LEX_token_t * PARSE_get_current_token(void)
 	return &parse_info.p_token_list->p_tokens[parse_info.u32_current_token_index];
 }
 
+static inline LEX_token_t * PARSE_get_next_token(void)
+{
+	if (parse_info.p_token_list->u32_num_tokens == parse_info.u32_current_token_index)
+	{
+		return NULL;
+	}
+	return &parse_info.p_token_list->p_tokens[parse_info.u32_current_token_index + 1];
+}
+
 /*
  *	Creates a node for use in the current parse tree
  */
@@ -179,6 +189,7 @@ static PARSE_node_t * PARSE_factor(void)
 {
 	PARSE_node_t * 	p_node;
 	LEX_token_t *	p_token = PARSE_get_current_token();
+	// LEX_token_t *	p_peek = PARSE_get_next_token();
 	LEX_token_t		saved_token;
 	
 	PARSE_DBG("[%s] FACTOR\n", p_token->pc_lexeme);
@@ -224,6 +235,7 @@ static PARSE_node_t * PARSE_term(void)
 			memcpy(&saved_token, p_token, sizeof(LEX_token_t));
 			PARSE_consume_token();
 			p_node = PARSE_create_node(&saved_token, p_node, PARSE_factor());
+			break;
 		}
 	}
 
@@ -241,20 +253,16 @@ static PARSE_node_t * PARSE_expression(void)
 
 	PARSE_DBG("[%s] EXPRESSION\n", p_token->pc_lexeme);
 
-	switch (p_token->type)
+	while (p_token->type == LEX_TOKEN_TYPE_OP_MULTIPLY || p_token->type == LEX_TOKEN_TYPE_OP_DIVIDE ||
+			p_token->type == LEX_TOKEN_TYPE_OP_ADD || p_token->type == LEX_TOKEN_TYPE_OP_SUBTRACT)
 	{
-		case LEX_TOKEN_TYPE_OP_MULTIPLY:
-		case LEX_TOKEN_TYPE_OP_DIVIDE:
-		case LEX_TOKEN_TYPE_OP_ADD:
-		case LEX_TOKEN_TYPE_OP_SUBTRACT:
+		memcpy(&saved_token, p_token, sizeof(LEX_token_t));
+		PARSE_consume_token();
+		p_node = PARSE_create_node(&saved_token, p_node, PARSE_term());
+
+		if (PARSE_get_current_token()->type == LEX_TOKEN_TYPE_DELIM)
 		{
-			memcpy(&saved_token, p_token, sizeof(LEX_token_t));
-			PARSE_consume_token();
-			p_node = PARSE_create_node(&saved_token, p_node, PARSE_term());
-		}
-		case LEX_TOKEN_TYPE_DELIM:
-		{
-			PARSE_consume_token();
+			break;
 		}
 	}
 

@@ -19,7 +19,6 @@ typedef struct
 	PARSE_node_t *				p_root;
 	const LEX_token_list_t *	p_token_list;
 	uint32_t 					u32_current_token_index;
-	bool						b_found_delim;
 } PARSE_info_t;
 
 typedef enum
@@ -35,26 +34,37 @@ typedef enum
  *	S T A T I C   V A R I A B L E S
  ****************************************************************************************************/
 
+/*
+ *	Parser info struct
+ */
 static PARSE_info_t parse_info;
 
 /****************************************************************************************************
  *	S T A T I C   F U N C T I O N   P R O T O T Y P E S
  ****************************************************************************************************/
 
+/*
+ *	Parsing rules
+ */
 static PARSE_node_t * 				PARSE_expression		(void);
 static PARSE_node_t * 				PARSE_term				(void);
 static PARSE_node_t * 				PARSE_factor			(void);
+
+/*
+ *	Helpers
+ */
 static void 						PARSE_traverse_tree		(const PARSE_node_t *p_node, uint32_t u32_level);
 static void 						PARSE_consume_token		(void);
 static inline LEX_token_t * 		PARSE_get_current_token	(void);
-static inline LEX_token_t * 		PARSE_get_next_token	(void);
 static inline PARSE_node_t *		PARSE_create_node		(LEX_token_t * p_token, PARSE_node_t * p_left, PARSE_node_t * p_right);
-
 
 /****************************************************************************************************
  *	F U N C T I O N S
  ****************************************************************************************************/
 
+/*
+ *	Initializes the module
+ */
 void PARSE_init(void)
 {
 	PARSE_DBG("Initializing\n");
@@ -63,12 +73,16 @@ void PARSE_init(void)
 	parse_info.u32_current_token_index = 0;
 }
 
+/*
+ *	Runs the recursive descent parser
+ */
 void PARSE_run_rdp(void)
 {
 	PARSE_node_t *kp_root = PARSE_expression();
 
 	parse_info.p_root = kp_root;
 
+	PARSE_DBG("Tree:\n");
 	PARSE_traverse_tree(parse_info.p_root, 0);
 }
 
@@ -76,11 +90,17 @@ void PARSE_run_rdp(void)
  *	S T A T I C   F U N C T I O N S
  ****************************************************************************************************/
 
+/*
+ *	Moves the current token index forward
+ */
 static void PARSE_consume_token(void)
 {
 	parse_info.u32_current_token_index++;
 }
 
+/*
+ *	For visual debugging only
+ */
 static void PARSE_traverse_tree(const PARSE_node_t *p_node, uint32_t u32_level)
 {
 	if (p_node == NULL)
@@ -106,20 +126,17 @@ static void PARSE_traverse_tree(const PARSE_node_t *p_node, uint32_t u32_level)
 	PARSE_traverse_tree(p_node->p_right, u32_level + 1);
 }
 
+/*
+ *	Retrieves the token at the current token index
+ */
 static inline LEX_token_t * PARSE_get_current_token(void)
 {
 	return &parse_info.p_token_list->p_tokens[parse_info.u32_current_token_index];
 }
 
-static inline LEX_token_t * PARSE_get_next_token(void)
-{
-	if (parse_info.u32_current_token_index < parse_info.p_token_list->u32_num_tokens)
-	{
-		return &parse_info.p_token_list->p_tokens[parse_info.u32_current_token_index + 1];
-	}
-	return NULL;
-}
-
+/*
+ *	Creates a node for use in the current parse tree
+ */
 static inline PARSE_node_t * PARSE_create_node (LEX_token_t * p_token, PARSE_node_t * p_left, PARSE_node_t * p_right)
 {
 	PARSE_node_t * p_node = (PARSE_node_t *)malloc(sizeof(PARSE_node_t));
@@ -131,6 +148,13 @@ static inline PARSE_node_t * PARSE_create_node (LEX_token_t * p_token, PARSE_nod
 	return p_node;
 }
 
+/****************************************************************************************************
+ *	G R A M M A R   R U L E S
+ ****************************************************************************************************/
+
+/*
+ *	Factor grammar rule
+ */
 static PARSE_node_t * PARSE_factor(void)
 {
 	PARSE_node_t * 	p_node;
@@ -139,7 +163,7 @@ static PARSE_node_t * PARSE_factor(void)
 	
 	PARSE_DBG("PARSE_factor: [%s]\n", p_token->pc_lexeme);
 
-	switch(p_token->type)
+	switch (p_token->type)
 	{
 		case LEX_TOKEN_TYPE_OPEN_PAREN:
 		{
@@ -155,9 +179,13 @@ static PARSE_node_t * PARSE_factor(void)
 			return PARSE_create_node(&saved_token, NULL, NULL);
 		}
 	}
+
 	return NULL; // Unreached
 }
 
+/*
+ *	Term grammar rule
+ */
 static PARSE_node_t * PARSE_term(void)
 {
 	PARSE_node_t * 	p_node = PARSE_factor();
@@ -166,15 +194,25 @@ static PARSE_node_t * PARSE_term(void)
 
 	PARSE_DBG("PARSE_term: [%s]\n", p_token->pc_lexeme);
 
-	if(p_token->type == LEX_TOKEN_TYPE_OP_MULTIPLY || p_token->type == LEX_TOKEN_TYPE_OP_DIVIDE)
+	switch (p_token->type)
 	{
-		memcpy(&saved_token, p_token, sizeof(LEX_token_t));
-		PARSE_consume_token();
-		p_node = PARSE_create_node(&saved_token, p_node, PARSE_factor());
+		case LEX_TOKEN_TYPE_OP_MULTIPLY:
+		case LEX_TOKEN_TYPE_OP_DIVIDE:
+		case LEX_TOKEN_TYPE_OP_ADD:
+		case LEX_TOKEN_TYPE_OP_SUBTRACT:
+		{
+			memcpy(&saved_token, p_token, sizeof(LEX_token_t));
+			PARSE_consume_token();
+			p_node = PARSE_create_node(&saved_token, p_node, PARSE_factor());
+		}
 	}
+
 	return p_node;
 }
 
+/*
+ *	Expression grammar rule
+ */
 static PARSE_node_t * PARSE_expression(void)
 {
 	PARSE_node_t * 	p_node = PARSE_term();
@@ -183,11 +221,18 @@ static PARSE_node_t * PARSE_expression(void)
 
 	PARSE_DBG("PARSE_expression: [%s]\n", p_token->pc_lexeme);
 
-	if(p_token->type == LEX_TOKEN_TYPE_OP_ADD || p_token->type == LEX_TOKEN_TYPE_OP_SUBTRACT)
+	switch (p_token->type)
 	{
-		memcpy(&saved_token, p_token, sizeof(LEX_token_t));
-		PARSE_consume_token();
-		p_node = PARSE_create_node(&saved_token, p_node, PARSE_term());
+		case LEX_TOKEN_TYPE_OP_MULTIPLY:
+		case LEX_TOKEN_TYPE_OP_DIVIDE:
+		case LEX_TOKEN_TYPE_OP_ADD:
+		case LEX_TOKEN_TYPE_OP_SUBTRACT:
+		{
+			memcpy(&saved_token, p_token, sizeof(LEX_token_t));
+			PARSE_consume_token();
+			p_node = PARSE_create_node(&saved_token, p_node, PARSE_term());
+		}
 	}
+
 	return p_node;
 }

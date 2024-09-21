@@ -59,6 +59,7 @@ typedef struct _LEX_fsm_info
 	uint32_t				u32_token_buffer_capacity;
 	char					p_current_lexeme[LEX_MAX_LEXEME_SIZE];
 	uint8_t					u8_current_lexeme_index;
+	uint32_t				u32_num_statements;
 } LEX_info_t;
 
 /****************************************************************************************************
@@ -85,6 +86,8 @@ static LEX_token_type_t		LEX_token_type_from_lexeme						(void);
  *	Debug
  */
 static const char * 		LEX_get_token_type_descriptor					(const LEX_token_type_t k_token_type);
+static void 				LEX_fsm_report 									(void);
+
 
 /****************************************************************************************************
  *	S T A T I C   V A R I A B L E S
@@ -163,6 +166,7 @@ void LEX_init(void)
 	LEX_DBG("Initializing\n");
 
 	lex_info.u8_current_lexeme_index = 0;
+	lex_info.u32_num_statements = 0;
 	memset(lex_info.p_current_lexeme, 0, LEX_MAX_LEXEME_SIZE);
 	lex_info.token_list.p_tokens = (LEX_token_t *)malloc(sizeof(LEX_token_t) * LEX_INITIAL_TOKEN_BUFFER_SIZE);
 	lex_info.token_list.u32_num_tokens = 0;
@@ -185,11 +189,7 @@ void LEX_run_fsm(void)
 	{
 		lex_info.c_current_char = *kpc_source_ptr++;
 
-		LEX_DBG("Received char [%c] in state %-30s\t[row: %03u, column %03u]\n", 
-					lex_info.c_current_char, 
-					lex_info.p_state->descriptor, 
-					lex_info.u32_row, 
-					lex_info.u32_column);
+		LEX_fsm_report();
 
 		ASSERT(lex_info.p_state->handler());
 	}
@@ -197,7 +197,8 @@ void LEX_run_fsm(void)
 	// Flush the last buffer
 	LEX_flush_to_token();
 
-	LEX_DBG("Produced %u Tokens:\n", lex_info.token_list.u32_num_tokens);
+	LEX_DBG("Found %u statements\n", lex_info.u32_num_statements);
+	LEX_DBG("Produced %u tokens:\n", lex_info.token_list.u32_num_tokens);
 
 	for (uint32_t i = 0; i < lex_info.token_list.u32_num_tokens; i++)
 	{
@@ -216,6 +217,14 @@ const LEX_token_list_t * LEX_get_token_list(void)
 	return &lex_info.token_list;
 }
 
+/*
+ *	Retrieves the statement count
+ */
+const uint32_t LEX_get_num_statements (void)
+{
+	return lex_info.u32_num_statements;
+}
+
 /****************************************************************************************************
  *	S T A T I C   F U N C T I O N   D E F I N I T I O N S
  ****************************************************************************************************/
@@ -227,6 +236,10 @@ const LEX_token_list_t * LEX_get_token_list(void)
 static inline void LEX_go_to_state(LEX_fsm_state_id_t state_id)
 {
 	ASSERT(state_id < LEX_FSM_STATE_ID_NUM_STATES);
+	if (state_id == LEX_FSM_STATE_ID_WAIT_SCANNING_DELIM)
+	{
+		lex_info.u32_num_statements++;
+	}
 	lex_info.p_state = &p_fsm_states[state_id];
 }
 
@@ -501,3 +514,11 @@ static const char * LEX_get_token_type_descriptor (const LEX_token_type_t k_toke
 	return pk_token_type_descriptors[k_token_type];
 }
 
+static void LEX_fsm_report (void)
+{
+	LEX_DBG("Received char [%c] in state %-30s\t[row: %03u, column %03u]\n", 
+						lex_info.c_current_char, 
+						lex_info.p_state->descriptor, 
+						lex_info.u32_row, 
+						lex_info.u32_column);
+}

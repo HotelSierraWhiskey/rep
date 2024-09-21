@@ -3,26 +3,24 @@
 #include "lex.h"
 #include "parse.h"
 
-int main()
+int main(int argc, char** argv)
 {
+#ifdef BUILD_DEBUG
+	IO_HANDLER_load_source_file("debug.rep");
+#else
+	if (argc != 2)
+	{
+		return 0;
+	}
 
-	IO_HANDLER_load_source_file("test.rep");
+	const char * fname = argv[1];
+
+	IO_HANDLER_load_source_file(fname);
+#endif // BUILD_DEBUG
 
 	LEX_init();
 	LEX_run_fsm();
 
 	PARSE_init();
 	PARSE_run_rdp();
-
-	
-
-	
-
-	// for (uint32_t i = 0; i < p_token_list->u32_num_tokens; i++)
-	// {
-	// 	LEX_token_t token = p_token_list->p_tokens[i];
-
-	// 	printf("lexeme: %-20s\ttype: %-20s\trow: %-5u\tcolumn: %-5u\n", 
-	// 		token.pc_lexeme, CFG_get_terminal_descriptor(token.type), token.u32_row, token.u32_column);
-	// }
 }

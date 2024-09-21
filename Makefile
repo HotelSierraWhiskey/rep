@@ -4,6 +4,7 @@ CC = gcc
 DBGFLAGS = 	-DDEBUG_IO\
 			-DDEBUG_LEX\
 			-DDEBUG_PARSE\
+			-DBUILD_DEBUG
 
 CFLAGS = -Wall -Wno-switch -g $(DBGFLAGS)
 

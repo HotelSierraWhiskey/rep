@@ -49,5 +49,6 @@ typedef struct _LEX_token_list
 void 						LEX_init				(void);
 void 						LEX_run_fsm				(void);
 const LEX_token_list_t *	LEX_get_token_list		(void);
+const uint32_t 				LEX_get_num_statements 	(void);
 
 #endif

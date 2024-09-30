@@ -518,6 +518,7 @@ static void LEX_fsm_report (void)
 {
 	char pc_buff[3] = {lex_info.c_current_char, '\0', '\0'};
 
+	// This makes debugging whitespace characters a bit clearer
 	switch (lex_info.c_current_char)
 	{
 		case '\n': {strncpy(pc_buff, "\\n", 3); break;}

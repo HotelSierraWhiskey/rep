@@ -97,6 +97,7 @@ void PARSE_run_rdp(void)
 		p_root = PARSE_expression();
 		PARSE_DBG("Tree:\n");
 		PARSE_traverse_tree(p_root, 0, PARSE_NODE_SIDE_ROOT);
+		PARSE_consume_token();
 	}
 }
 
@@ -189,7 +190,6 @@ static PARSE_node_t * PARSE_factor(void)
 {
 	PARSE_node_t * 	p_node;
 	LEX_token_t *	p_token = PARSE_get_current_token();
-	// LEX_token_t *	p_peek = PARSE_get_next_token();
 	LEX_token_t		saved_token;
 	
 	PARSE_DBG("[%s] FACTOR\n", p_token->pc_lexeme);

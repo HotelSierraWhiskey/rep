@@ -1,5 +1,6 @@
 #include "unity.h"
 #include "unity_fixture.h"
+#include "status.h"
 #include "io_handler.h"
 #include "lex.h"
 

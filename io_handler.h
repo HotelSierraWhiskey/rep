@@ -2,6 +2,7 @@
 #define IO_HANDLER_H
 
 #include "common.h"
+#include "status.h"
 
 /****************************************************************************************************
  *	D E F I N E S
@@ -23,7 +24,7 @@ typedef struct _IO_HANDLER_source_info
  *	F U N C T I O N S
  ****************************************************************************************************/
 
-void 								IO_HANDLER_load_source_file		(const char * kpc_fname);
+STATUS_t 							IO_HANDLER_load_source_file 	(const char * kpc_fname);
 const IO_HANDLER_source_info_t * 	IO_HANDLER_get_source_info		(void);
 
 

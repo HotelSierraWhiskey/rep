@@ -22,6 +22,22 @@ UNITY_INC = $(COMMON_INC) \
 			-Itests/unity/extras/memory/src \
 
 ##################################################
+# Unit IO Handler
+##################################################
+UNIT_IO_HANDLER_PATH = tests/unit_io_handler
+UNIT_IO_HANDLER_TARGET = $(UNIT_IO_HANDLER_PATH)/unit_io_handler
+UNIT_IO_HANDLER_SRCS = $(COMMON_SRCS) $(UNITY_SRCS) $(UNIT_IO_HANDLER_PATH)/unit_io_handler.c
+UNIT_IO_HANDLER_OBJS = $(COMMON_SRCS:.c=.unit.o) $(UNITY_SRCS:.c=.unit.o) $(UNIT_IO_HANDLER_PATH)/unit_io_handler.unit.o
+
+%.unit.o: %.c
+	$(CC) $(CFLAGS) -DUNITY_SKIP_DEFAULT_RUNNER $(UNITY_INC) -c $< -o $@
+
+$(UNIT_IO_HANDLER_TARGET): $(UNIT_IO_HANDLER_OBJS)
+	$(CC) $(UNIT_IO_HANDLER_OBJS) -o $(UNIT_IO_HANDLER_TARGET)
+
+unit_io_handler: $(UNIT_IO_HANDLER_TARGET)
+
+##################################################
 # Unit Lex
 ##################################################
 UNIT_LEX_PATH = tests/unit_lex
@@ -56,9 +72,9 @@ compile: $(TARGET)
 # Utils
 ##################################################
 clean:
-	rm -f $(TARGET) $(OBJS) $(UNIT_LEX_TARGET) $(UNIT_LEX_OBJS)
+	rm -f $(TARGET) $(OBJS) $(UNIT_IO_HANDLER_TARGET) $(UNIT_IO_HANDLER_OBJS) $(UNIT_LEX_TARGET) $(UNIT_LEX_OBJS)
 
 run:
 	./rep
 
-.PHONY: compile unit_lex clean run
+.PHONY: compile unit_io_handler unit_lex clean run

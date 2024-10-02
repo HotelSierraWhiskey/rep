@@ -24,4 +24,6 @@
 
 #define UNUSED(x)       (void)(x)
 
+#define GREEN(text)     "\033[32m"text"\033[0m"
+
 #endif

@@ -3,19 +3,23 @@
 ##################################################
 CC = gcc
 
-DBGFLAGS = 	-DDEBUG_IO\
-			-DDEBUG_LEX\
-			-DDEBUG_PARSE\
-			-DBUILD_DEBUG
+DBGFLAGS = 	-DDEBUG_IO -DDEBUG_LEX -DDEBUG_PARSE -DBUILD_DEBUG
 
 CFLAGS = -Wall -Wno-switch -g $(DBGFLAGS)
+COMMON_INC = -I.
 COMMON_SRCS = io_handler.c lex.c parse.c
 
 ##################################################
 # Unity Stuff
 ##################################################
-UNITY_SRCS = tests/unity/src/unity.c
-UNITY_INC = -Itests/unity/src
+UNITY_SRCS = 	tests/unity/src/unity.c \
+				tests/unity/extras/fixture/src/unity_fixture.c \
+				tests/unity/extras/memory/src/unity_memory.c \
+
+UNITY_INC = $(COMMON_INC) \
+			-Itests/unity/src \
+			-Itests/unity/extras/fixture/src \
+			-Itests/unity/extras/memory/src \
 
 ##################################################
 # Unit Lex
@@ -26,7 +30,7 @@ UNIT_LEX_SRCS = $(COMMON_SRCS) $(UNITY_SRCS) $(UNIT_LEX_PATH)/unit_lex.c
 UNIT_LEX_OBJS = $(COMMON_SRCS:.c=.unit.o) $(UNITY_SRCS:.c=.unit.o) $(UNIT_LEX_PATH)/unit_lex.unit.o
 
 %.unit.o: %.c
-	$(CC) $(CFLAGS) $(UNITY_INC) -c $< -o $@
+	$(CC) $(CFLAGS) -DUNITY_SKIP_DEFAULT_RUNNER $(UNITY_INC) -c $< -o $@
 
 $(UNIT_LEX_TARGET): $(UNIT_LEX_OBJS)
 	$(CC) $(UNIT_LEX_OBJS) -o $(UNIT_LEX_TARGET)

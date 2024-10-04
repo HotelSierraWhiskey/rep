@@ -7,7 +7,7 @@
 #ifdef DEBUG_IO
 #define IO_DBG(fmt, ...)				printf("IO:\t"fmt, ##__VA_ARGS__)
 #else
-#define IO_DBG(fmt, ...)				asm("nop");
+#define IO_DBG(fmt, ...)
 #endif
 
 #define IO_REP_EXT_LENGTH				(4)

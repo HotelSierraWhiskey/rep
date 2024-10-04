@@ -7,7 +7,7 @@
 #ifdef DEBUG_PARSE
 #define PARSE_DBG(fmt, ...) printf("PARSE:\t" fmt, ##__VA_ARGS__)
 #else
-#define PARSE_DBG(fmt, ...) asm("nop");
+#define PARSE_DBG(fmt, ...)
 #endif
 
 /****************************************************************************************************

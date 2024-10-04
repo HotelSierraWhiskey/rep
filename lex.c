@@ -8,7 +8,7 @@
 #ifdef DEBUG_LEX
 #define LEX_DBG(fmt, ...)				printf("LEX:\t"fmt, ##__VA_ARGS__)
 #else
-#define LEX_DBG(fmt, ...)				asm("nop");
+#define LEX_DBG(fmt, ...)
 #endif
 
 #define LEX_INITIAL_TOKEN_BUFFER_SIZE	(4)

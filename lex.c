@@ -83,10 +83,11 @@ static void 				LEX_flush_to_token								(void);
 static LEX_token_type_t		LEX_token_type_from_lexeme						(void);
 
 /*
- *	Debug
+ *	Debug & helpers
  */
 static const char * 		LEX_get_token_type_descriptor					(const LEX_token_type_t k_token_type);
 static void 				LEX_fsm_report 									(void);
+static void					LEX_restore_defaults							(void);
 
 
 /****************************************************************************************************
@@ -160,18 +161,28 @@ static LEX_info_t lex_info;
 
 /*
  *	Initializes the module
+ *
+ *	NOTE: for the moment this just returns STATUS_OK
  */
-void LEX_init(void)
+STATUS_t LEX_init(void)
 {
 	LEX_DBG("Initializing\n");
 
-	lex_info.u8_current_lexeme_index = 0;
-	lex_info.u32_num_statements = 0;
-	memset(lex_info.p_current_lexeme, 0, LEX_MAX_LEXEME_SIZE);
+	LEX_restore_defaults();
 	lex_info.token_list.p_tokens = (LEX_token_t *)malloc(sizeof(LEX_token_t) * LEX_INITIAL_TOKEN_BUFFER_SIZE);
-	lex_info.token_list.u32_num_tokens = 0;
-	lex_info.u32_token_buffer_capacity = LEX_INITIAL_TOKEN_BUFFER_SIZE;
-	lex_info.p_state = &p_fsm_states[LEX_FSM_STATE_ID_START];
+
+	return STATUS_OK;
+}
+
+STATUS_t LEX_deinit(void)
+{
+	LEX_DBG("Deinitializing\n");
+
+	LEX_restore_defaults();
+	free(lex_info.token_list.p_tokens);
+	lex_info.token_list.p_tokens = NULL;
+
+	return STATUS_OK;
 }
 
 /*
@@ -530,4 +541,14 @@ static void LEX_fsm_report (void)
 						lex_info.p_state->descriptor, 
 						lex_info.u32_row, 
 						lex_info.u32_column);
+}
+
+static void LEX_restore_defaults (void)
+{
+	lex_info.u8_current_lexeme_index = 0;
+	lex_info.u32_num_statements = 0;
+	memset(lex_info.p_current_lexeme, 0, LEX_MAX_LEXEME_SIZE);
+	lex_info.token_list.u32_num_tokens = 0;
+	lex_info.u32_token_buffer_capacity = LEX_INITIAL_TOKEN_BUFFER_SIZE;
+	lex_info.p_state = &p_fsm_states[LEX_FSM_STATE_ID_START];	
 }

@@ -2,6 +2,7 @@
 #define LEX_H
 
 #include "common.h"
+#include "status.h"
 
 /****************************************************************************************************
  *	D E F I N E S
@@ -46,7 +47,8 @@ typedef struct _LEX_token_list
  *	P U B L I C   F U N C T I O N S
  ****************************************************************************************************/
 
-void 						LEX_init				(void);
+STATUS_t 					LEX_init				(void);
+STATUS_t 					LEX_deinit				(void);
 void 						LEX_run_fsm				(void);
 const LEX_token_list_t *	LEX_get_token_list		(void);
 const uint32_t 				LEX_get_num_statements 	(void);

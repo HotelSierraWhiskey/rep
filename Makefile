@@ -10,48 +10,69 @@ COMMON_INC = -I.
 COMMON_SRCS = io_handler.c lex.c parse.c
 
 ##################################################
-# Unity Stuff
+# Unity & Test Stuff
 ##################################################
-UNITY_SRCS = 	tests/unity/src/unity.c \
-				tests/unity/extras/fixture/src/unity_fixture.c \
-				tests/unity/extras/memory/src/unity_memory.c \
+
+# All unit test dirs and targets
+UNIT_TEST_DIRS = unit_io_handler unit_lex
+UNIT_TEST_TARGETS = $(UNIT_IO_HANDLER) $(UNIT_LEX)
+
+# Unity flags, includes, srcs
+UNITY_FLAGS = -DUNITY_SKIP_DEFAULT_RUNNER -DUNITY_INCLUDE_PRINT_FORMATTED -DUNITY_OUTPUT_COLOR
 
 UNITY_INC = $(COMMON_INC) \
 			-Itests/unity/src \
 			-Itests/unity/extras/fixture/src \
 			-Itests/unity/extras/memory/src \
 
+UNITY_SRCS = 	tests/unity/src/unity.c \
+				tests/unity/extras/fixture/src/unity_fixture.c \
+				tests/unity/extras/memory/src/unity_memory.c \
+
+# All testing-related flags, includes, srcs
+TEST_FLAGS = $(UNITY_FLAGS)
+
+TEST_INC = $(UNITY_INC)
+
+TEST_SRCS = $(UNITY_SRCS)
+
+# Rule to build test srcs
+%._test.o: %.c
+	$(CC) $(CFLAGS) $(TEST_FLAGS) $(TEST_INC) -c $< -o $@
+
 ##################################################
 # Unit IO Handler
 ##################################################
-UNIT_IO_HANDLER_PATH = tests/unit_io_handler
-UNIT_IO_HANDLER_TARGET = $(UNIT_IO_HANDLER_PATH)/unit_io_handler
-UNIT_IO_HANDLER_SRCS = $(COMMON_SRCS) $(UNITY_SRCS) $(UNIT_IO_HANDLER_PATH)/unit_io_handler.c
-UNIT_IO_HANDLER_OBJS = $(COMMON_SRCS:.c=.unit.o) $(UNITY_SRCS:.c=.unit.o) $(UNIT_IO_HANDLER_PATH)/unit_io_handler.unit.o
+UNIT_IO_HANDLER = unit_io_handler
+UNIT_IO_HANDLER_PATH = tests/$(UNIT_IO_HANDLER)
+UNIT_IO_HANDLER_TARGET = $(UNIT_IO_HANDLER_PATH)/$(UNIT_IO_HANDLER)
+UNIT_IO_HANDLER_SRCS = $(COMMON_SRCS) $(TEST_SRCS) $(UNIT_IO_HANDLER_PATH)/$(UNIT_IO_HANDLER).c
+UNIT_IO_HANDLER_OBJS = $(COMMON_SRCS:.c=.o) $(TEST_SRCS:.c=._test.o) $(UNIT_IO_HANDLER_PATH)/$(UNIT_IO_HANDLER)._$(UNIT_IO_HANDLER).o
 
-%.unit.o: %.c
-	$(CC) $(CFLAGS) -DUNITY_SKIP_DEFAULT_RUNNER $(UNITY_INC) -c $< -o $@
+%._$(UNIT_IO_HANDLER).o: %.c
+	$(CC) $(CFLAGS) $(TEST_FLAGS) $(TEST_INC) -c $< -o $@
 
 $(UNIT_IO_HANDLER_TARGET): $(UNIT_IO_HANDLER_OBJS)
 	$(CC) $(UNIT_IO_HANDLER_OBJS) -o $(UNIT_IO_HANDLER_TARGET)
 
-unit_io_handler: $(UNIT_IO_HANDLER_TARGET)
+$(UNIT_IO_HANDLER): $(UNIT_IO_HANDLER_TARGET)
 
 ##################################################
 # Unit Lex
 ##################################################
-UNIT_LEX_PATH = tests/unit_lex
-UNIT_LEX_TARGET = $(UNIT_LEX_PATH)/unit_lex
-UNIT_LEX_SRCS = $(COMMON_SRCS) $(UNITY_SRCS) $(UNIT_LEX_PATH)/unit_lex.c
-UNIT_LEX_OBJS = $(COMMON_SRCS:.c=.unit.o) $(UNITY_SRCS:.c=.unit.o) $(UNIT_LEX_PATH)/unit_lex.unit.o
+UNIT_LEX = unit_lex
+UNIT_LEX_PATH = tests/$(UNIT_LEX)
+UNIT_LEX_TARGET = $(UNIT_LEX_PATH)/$(UNIT_LEX)
+UNIT_LEX_SRCS = $(COMMON_SRCS) $(TEST_SRCS) $(UNIT_LEX_PATH)/$(UNIT_LEX).c
+UNIT_LEX_OBJS = $(COMMON_SRCS:.c=.o) $(TEST_SRCS:.c=._test.o) $(UNIT_LEX_PATH)/$(UNIT_LEX)._$(UNIT_LEX).o
 
-%.unit.o: %.c
-	$(CC) $(CFLAGS) -DUNITY_SKIP_DEFAULT_RUNNER $(UNITY_INC) -c $< -o $@
+%._$(UNIT_LEX).o: %.c
+	$(CC) $(CFLAGS) $(TEST_FLAGS) $(TEST_INC) -c $< -o $@
 
 $(UNIT_LEX_TARGET): $(UNIT_LEX_OBJS)
 	$(CC) $(UNIT_LEX_OBJS) -o $(UNIT_LEX_TARGET)
 
-unit_lex: $(UNIT_LEX_TARGET)
+$(UNIT_LEX): $(UNIT_LEX_TARGET)
 
 ##################################################
 # Main Application
@@ -76,5 +97,11 @@ clean:
 
 run:
 	./rep
+
+test: $(UNIT_TEST_TARGETS)
+	@for dir in $(UNIT_TEST_DIRS); do \
+		echo "\033[1m\033[34m\nRunning tests in $$dir\n\033[0m"; \
+		(cd tests/$$dir && ./$$dir); \
+	done
 
 .PHONY: compile unit_io_handler unit_lex clean run

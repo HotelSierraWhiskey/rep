@@ -162,7 +162,7 @@ static LEX_info_t lex_info;
 /*
  *	Initializes the module
  *
- *	NOTE: for the moment this just returns STATUS_OK
+ *	For the moment this just returns STATUS_OK
  */
 STATUS_t LEX_init(void)
 {
@@ -174,6 +174,11 @@ STATUS_t LEX_init(void)
 	return STATUS_OK;
 }
 
+/*
+ *	Deinitializes the module
+ *
+ *	For the moment this just returns STATUS_OK
+ */
 STATUS_t LEX_deinit(void)
 {
 	LEX_DBG("Deinitializing\n");

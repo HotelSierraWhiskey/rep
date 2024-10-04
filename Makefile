@@ -98,6 +98,7 @@ clean:
 run:
 	./rep
 
+# Build and run all unit tests
 test: $(UNIT_TEST_TARGETS)
 	@for dir in $(UNIT_TEST_DIRS); do \
 		echo "\033[1m\033[34m\nRunning tests in $$dir\n\033[0m"; \

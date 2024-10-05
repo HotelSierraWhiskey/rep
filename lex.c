@@ -16,8 +16,9 @@
 /*
  *	Handy macros to group character subsets
  */
+#define LEX_SCANNING_ALPHA(c)			(isalpha((char)c)) || c == '_'
 #define LEX_SCANNING_NUMBER(c)			(isdigit((char)c))
-#define LEX_SCANNING_OPERATOR(c)		(c == '+' || c == '-' || c == '*' || c == '/')
+#define LEX_SCANNING_OPERATOR(c)		(c == '+' || c == '-' || c == '*' || c == '/' || c == '=')
 #define LEX_SCANNING_CONTROL_CHAR(c)	(c == '(' || c == ')')
 #define LEX_SCANNING_NEWLINE(c)			(c == '\n')
 #define LEX_SCANNING_WHITESPACE(c)		(c == ' ' || c == '\t' || LEX_SCANNING_NEWLINE(c) || c == '\r' || c == '\v' || c == '\f')
@@ -34,6 +35,7 @@ typedef enum
 	LEX_FSM_STATE_ID_START,
 	LEX_FSM_STATE_ID_WAIT_SCANNING_WHITESPACE,
 	LEX_FSM_STATE_ID_WAIT_SCANNING_DELIM,
+	LEX_FSM_STATE_ID_WAIT_SCANNING_IDENTIFIER,
 	LEX_FSM_STATE_ID_WAIT_SCANNING_NUMBER,
 	LEX_FSM_STATE_ID_WAIT_SCANNING_OPERATOR,
 	LEX_FSM_STATE_ID_WAIT_SCANNING_CONTROL_CHAR,
@@ -70,6 +72,7 @@ typedef struct _LEX_fsm_info
  *	FSM-related functions
  */
 static bool 				LEX_handle_STATE_START							(void);
+static bool 				LEX_handle_STATE_WAIT_SCANNING_IDENTIFIER			(void);
 static bool 				LEX_handle_STATE_WAIT_SCANNING_NUMBER			(void);
 static bool 				LEX_handle_STATE_WAIT_SCANNING_OPERATOR			(void);
 static bool 				LEX_handle_STATE_WAIT_SCANNING_CONTROL_CHAR		(void);
@@ -97,9 +100,11 @@ static void					LEX_restore_defaults							(void);
 static const char * const pk_token_type_descriptors[LEX_TOKEN_TYPE_NUM_TYPES] =
 {
 	[LEX_TOKEN_TYPE_UNKNOWN] 		= "UNKNOWN",
+	[LEX_TOKEN_TYPE_IDENTIFIER] 	= "IDENTIFIER",
 	[LEX_TOKEN_TYPE_INT_LITERAL] 	= "INT_LITERAL",
 	[LEX_TOKEN_TYPE_OPEN_PAREN] 	= "OPEN_PAREN",
 	[LEX_TOKEN_TYPE_CLOSE_PAREN] 	= "CLOSE_PAREN",
+	[LEX_TOKEN_TYPE_OP_ASSIGNMENT] 	= "OP_ASSIGNMENT",
 	[LEX_TOKEN_TYPE_OP_ADD] 		= "OP_ADD",
 	[LEX_TOKEN_TYPE_OP_SUBTRACT] 	= "OP_SUBTRACT",
 	[LEX_TOKEN_TYPE_OP_MULTIPLY] 	= "OP_MULTIPLY",
@@ -129,6 +134,12 @@ static LEX_fsm_state_t p_fsm_states[LEX_FSM_STATE_ID_NUM_STATES] =
 		.id 		= LEX_FSM_STATE_ID_WAIT_SCANNING_DELIM,
 		.handler 	= LEX_handle_STATE_START,
 		.descriptor = "STATE_ID_WAIT_SCANNING_DELIM"
+	},
+	[LEX_FSM_STATE_ID_WAIT_SCANNING_IDENTIFIER] = 
+	{
+		.id 		= LEX_FSM_STATE_ID_WAIT_SCANNING_IDENTIFIER,
+		.handler 	= LEX_handle_STATE_WAIT_SCANNING_IDENTIFIER,
+		.descriptor = "STATE_WAIT_SCANNING_IDENTIFIER"
 	},
 	[LEX_FSM_STATE_ID_WAIT_SCANNING_NUMBER] = 
 	{
@@ -218,11 +229,10 @@ void LEX_run_fsm(void)
 
 	for (uint32_t i = 0; i < lex_info.token_list.u32_num_tokens; i++)
 	{
-		LEX_DBG("Lexeme: %s\t(%s)\n", 
+		LEX_DBG("Lexeme: %-30s(%s)\n", 
 					lex_info.token_list.p_tokens[i].pc_lexeme, 
 					LEX_get_token_type_descriptor(lex_info.token_list.p_tokens[i].type));
 	}
-
 }
 
 /*
@@ -291,33 +301,61 @@ static void LEX_flush_to_token(void)
 
 static LEX_token_type_t LEX_token_type_from_lexeme(void)
 {
-	LEX_token_type_t type = LEX_TOKEN_TYPE_UNKNOWN;
+    LEX_token_type_t type = LEX_TOKEN_TYPE_UNKNOWN;
+    bool b_is_numeric = true;
 
-	ASSERT(lex_info.u8_current_lexeme_index > 0);
-
-	if (lex_info.u8_current_lexeme_index == 1)
-	{
-		char c = lex_info.p_current_lexeme[0];
+    ASSERT(lex_info.u8_current_lexeme_index > 0);
+    
+    // We can get some of the easy ones out of the way here
+    if (strlen(lex_info.p_current_lexeme) == 1)
+    {
+        char c = lex_info.p_current_lexeme[0];
 
         switch (c)
         {
-            case '0' ... '9':	{type = LEX_TOKEN_TYPE_INT_LITERAL; break;}
-            case '(': 			{type = LEX_TOKEN_TYPE_OPEN_PAREN; 	break;}
-            case ')': 			{type = LEX_TOKEN_TYPE_CLOSE_PAREN;	break;}
-            case '+': 			{type = LEX_TOKEN_TYPE_OP_ADD; 		break;}
-            case '-': 			{type = LEX_TOKEN_TYPE_OP_SUBTRACT;	break;}
-            case '*': 			{type = LEX_TOKEN_TYPE_OP_MULTIPLY;	break;}
-            case '/': 			{type = LEX_TOKEN_TYPE_OP_DIVIDE; 	break;}
-            case ';': 			{type = LEX_TOKEN_TYPE_DELIM; 		break;}
-            default:			{type = LEX_TOKEN_TYPE_UNKNOWN; 	break;}
+            case '0' ... '9':   {type = LEX_TOKEN_TYPE_INT_LITERAL; 	break;}
+            case '(':           {type = LEX_TOKEN_TYPE_OPEN_PAREN;  	break;}
+            case ')':           {type = LEX_TOKEN_TYPE_CLOSE_PAREN; 	break;}
+            case '=':           {type = LEX_TOKEN_TYPE_OP_ASSIGNMENT; 	break;}
+            case '+':           {type = LEX_TOKEN_TYPE_OP_ADD;      	break;}
+            case '-':           {type = LEX_TOKEN_TYPE_OP_SUBTRACT; 	break;}
+            case '*':           {type = LEX_TOKEN_TYPE_OP_MULTIPLY; 	break;}
+            case '/':           {type = LEX_TOKEN_TYPE_OP_DIVIDE;   	break;}
+            case ';':           {type = LEX_TOKEN_TYPE_DELIM;       	break;}
+            default:            {type = LEX_TOKEN_TYPE_UNKNOWN;     	break;}
         }
-	}
-	else
-	{
-		type = LEX_TOKEN_TYPE_INT_LITERAL;
-	}
+    }
+    else
+    {   
+		// If any character is not a number, the lexeme is not an int literal
+        for (uint32_t i = 0; i < strlen(lex_info.p_current_lexeme); ++i)
+        {
+            if (!isdigit(lex_info.p_current_lexeme[i]))
+            {
+                b_is_numeric = false;
+                break;
+            }
+        }
+        if (b_is_numeric)
+        {
+            type = LEX_TOKEN_TYPE_INT_LITERAL;
+        }
+        else
+        {
+			// If the leading char is alpha, the following chars can be alphanum/ underscore
+			// TODO: check for invalid chars here
+            if (isalpha(lex_info.p_current_lexeme[0]))
+            {
+				type = LEX_TOKEN_TYPE_IDENTIFIER;
+            }
+            else
+            {
+                type = LEX_TOKEN_TYPE_UNKNOWN;
+            }
+        }
+    }
 
-	return type;
+    return type;
 }
 
 static inline void LEX_push_to_current_lexeme(char c)
@@ -351,11 +389,71 @@ static bool LEX_handle_STATE_START(void)
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_DELIM);
 		b_res = true;
 	}
+	if (LEX_SCANNING_ALPHA(c))
+	{
+		LEX_flush_to_token();
+		LEX_push_to_current_lexeme(c);
+		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_IDENTIFIER);
+		b_res = true;
+	}
 	if (LEX_SCANNING_NUMBER(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_NUMBER);
+		b_res = true;
+	}
+	if (LEX_SCANNING_OPERATOR(c))
+	{
+		LEX_flush_to_token();
+		LEX_push_to_current_lexeme(c);
+		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_OPERATOR);
+		b_res = true;
+	}
+	if (LEX_SCANNING_CONTROL_CHAR(c))
+	{
+		LEX_flush_to_token();
+		LEX_push_to_current_lexeme(c);
+		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_CONTROL_CHAR);
+		b_res = true;
+	}
+
+	return b_res;
+}
+
+static bool LEX_handle_STATE_WAIT_SCANNING_IDENTIFIER(void)
+{
+	bool b_res = false;
+	char c = lex_info.c_current_char;
+	lex_info.u32_column++;
+
+	if (LEX_SCANNING_WHITESPACE(c))
+	{
+		LEX_flush_to_token();
+
+		if (LEX_SCANNING_NEWLINE(c))
+		{
+			lex_info.u32_row++;
+			lex_info.u32_column = 0;
+		}
+		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_WHITESPACE);
+		b_res = true;
+	}
+	if (LEX_SCANNING_DELIM(c))
+	{
+		LEX_flush_to_token();
+		LEX_push_to_current_lexeme(c);
+		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_DELIM);
+		b_res = true;
+	}
+	if (LEX_SCANNING_ALPHA(c))
+	{		
+		LEX_push_to_current_lexeme(c);		
+		b_res = true;
+	}
+	if (LEX_SCANNING_NUMBER(c))
+	{
+		LEX_push_to_current_lexeme(c);
 		b_res = true;
 	}
 	if (LEX_SCANNING_OPERATOR(c))
@@ -384,7 +482,6 @@ static bool LEX_handle_STATE_WAIT_SCANNING_NUMBER(void)
 
 	if (LEX_SCANNING_WHITESPACE(c))
 	{
-
 		LEX_flush_to_token();
 
 		if (LEX_SCANNING_NEWLINE(c))
@@ -400,6 +497,13 @@ static bool LEX_handle_STATE_WAIT_SCANNING_NUMBER(void)
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_DELIM);
+		b_res = true;
+	}
+	if (LEX_SCANNING_ALPHA(c))
+	{
+		// LEX_flush_to_token();
+		LEX_push_to_current_lexeme(c);
+		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_IDENTIFIER);
 		b_res = true;
 	}
 	if (LEX_SCANNING_NUMBER(c))
@@ -433,7 +537,6 @@ static bool LEX_handle_STATE_WAIT_SCANNING_OPERATOR(void)
 
 	if (LEX_SCANNING_WHITESPACE(c))
 	{
-
 		LEX_flush_to_token();
 
 		if (LEX_SCANNING_NEWLINE(c))
@@ -482,7 +585,6 @@ static bool LEX_handle_STATE_WAIT_SCANNING_CONTROL_CHAR(void)
 
 	if (LEX_SCANNING_WHITESPACE(c))
 	{
-
 		LEX_flush_to_token();
 
 		if (LEX_SCANNING_NEWLINE(c))

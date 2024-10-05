@@ -16,13 +16,20 @@
 /*
  *	Handy macros to group character subsets
  */
-#define LEX_SCANNING_ALPHA(c)			(isalpha((char)c)) || c == '_'
+#define LEX_SCANNING_ALPHA(c)			(isalpha((char)c) || c == '_')
 #define LEX_SCANNING_NUMBER(c)			(isdigit((char)c))
 #define LEX_SCANNING_OPERATOR(c)		(c == '+' || c == '-' || c == '*' || c == '/' || c == '=')
 #define LEX_SCANNING_CONTROL_CHAR(c)	(c == '(' || c == ')')
 #define LEX_SCANNING_NEWLINE(c)			(c == '\n')
 #define LEX_SCANNING_WHITESPACE(c)		(c == ' ' || c == '\t' || LEX_SCANNING_NEWLINE(c) || c == '\r' || c == '\v' || c == '\f')
 #define LEX_SCANNING_DELIM(c)			(c == ';')
+#define LEX_SCANNING_SPECIAL_CHAR(c)	(!LEX_SCANNING_ALPHA(c) && \
+										!LEX_SCANNING_NUMBER(c) && \
+										!LEX_SCANNING_OPERATOR(c) && \
+										!LEX_SCANNING_CONTROL_CHAR(c) && \
+										!LEX_SCANNING_NEWLINE(c) && \
+										!LEX_SCANNING_WHITESPACE(c) && \
+										!LEX_SCANNING_DELIM(c))
 
 /****************************************************************************************************
  *	T Y P E D E F S
@@ -328,7 +335,7 @@ static LEX_token_type_t LEX_token_type_from_lexeme(void)
     else
     {   
 		// If any character is not a number, the lexeme is not an int literal
-        for (uint32_t i = 0; i < strlen(lex_info.p_current_lexeme); ++i)
+        for (uint32_t i = 0; i < strlen(lex_info.p_current_lexeme); i++)
         {
             if (!isdigit(lex_info.p_current_lexeme[i]))
             {
@@ -342,11 +349,19 @@ static LEX_token_type_t LEX_token_type_from_lexeme(void)
         }
         else
         {
-			// If the leading char is alpha, the following chars can be alphanum/ underscore
-			// TODO: check for invalid chars here
-            if (isalpha(lex_info.p_current_lexeme[0]))
+			// If the leading char is alpha or underscore, the following chars can be alphanum/ underscore
+            if (isalpha(lex_info.p_current_lexeme[0]) || lex_info.p_current_lexeme[0] == '_')
             {
 				type = LEX_TOKEN_TYPE_IDENTIFIER;
+
+		        for (uint32_t i = 0; i < strlen(lex_info.p_current_lexeme); i++)
+				{
+					if (LEX_SCANNING_SPECIAL_CHAR(lex_info.p_current_lexeme[i]))
+					{
+						type = LEX_TOKEN_TYPE_UNKNOWN;
+						break;
+					}
+				}
             }
             else
             {
@@ -382,39 +397,45 @@ static bool LEX_handle_STATE_START(void)
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_WHITESPACE);
 		b_res = true;
 	}
-	if (LEX_SCANNING_DELIM(c))
+	else if (LEX_SCANNING_DELIM(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_DELIM);
 		b_res = true;
 	}
-	if (LEX_SCANNING_ALPHA(c))
+	else if (LEX_SCANNING_ALPHA(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_IDENTIFIER);
 		b_res = true;
 	}
-	if (LEX_SCANNING_NUMBER(c))
+	else if (LEX_SCANNING_NUMBER(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_NUMBER);
 		b_res = true;
 	}
-	if (LEX_SCANNING_OPERATOR(c))
+	else if (LEX_SCANNING_OPERATOR(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_OPERATOR);
 		b_res = true;
 	}
-	if (LEX_SCANNING_CONTROL_CHAR(c))
+	else if (LEX_SCANNING_CONTROL_CHAR(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_CONTROL_CHAR);
+		b_res = true;
+	}
+	else
+	{
+		LEX_push_to_current_lexeme(c);
+		LEX_flush_to_token();
 		b_res = true;
 	}
 
@@ -439,35 +460,41 @@ static bool LEX_handle_STATE_WAIT_SCANNING_IDENTIFIER(void)
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_WHITESPACE);
 		b_res = true;
 	}
-	if (LEX_SCANNING_DELIM(c))
+	else if (LEX_SCANNING_DELIM(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_DELIM);
 		b_res = true;
 	}
-	if (LEX_SCANNING_ALPHA(c))
+	else if (LEX_SCANNING_ALPHA(c))
 	{		
 		LEX_push_to_current_lexeme(c);		
 		b_res = true;
 	}
-	if (LEX_SCANNING_NUMBER(c))
+	else if (LEX_SCANNING_NUMBER(c))
 	{
 		LEX_push_to_current_lexeme(c);
 		b_res = true;
 	}
-	if (LEX_SCANNING_OPERATOR(c))
+	else if (LEX_SCANNING_OPERATOR(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_OPERATOR);
 		b_res = true;
 	}
-	if (LEX_SCANNING_CONTROL_CHAR(c))
+	else if (LEX_SCANNING_CONTROL_CHAR(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_CONTROL_CHAR);
+		b_res = true;
+	}
+	else
+	{
+		LEX_push_to_current_lexeme(c);
+		LEX_go_to_state(LEX_FSM_STATE_ID_START);
 		b_res = true;
 	}
 
@@ -492,37 +519,43 @@ static bool LEX_handle_STATE_WAIT_SCANNING_NUMBER(void)
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_WHITESPACE);
 		b_res = true;
 	}
-	if (LEX_SCANNING_DELIM(c))
+	else if (LEX_SCANNING_DELIM(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_DELIM);
 		b_res = true;
 	}
-	if (LEX_SCANNING_ALPHA(c))
+	else if (LEX_SCANNING_ALPHA(c))
 	{
 		// LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_IDENTIFIER);
 		b_res = true;
 	}
-	if (LEX_SCANNING_NUMBER(c))
+	else if (LEX_SCANNING_NUMBER(c))
 	{
 		LEX_push_to_current_lexeme(c);
 		b_res = true;
 	}
-	if (LEX_SCANNING_OPERATOR(c))
+	else if (LEX_SCANNING_OPERATOR(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_OPERATOR);
 		b_res = true;
 	}
-	if (LEX_SCANNING_CONTROL_CHAR(c))
+	else if (LEX_SCANNING_CONTROL_CHAR(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_CONTROL_CHAR);
+		b_res = true;
+	}
+	else
+	{
+		LEX_push_to_current_lexeme(c);
+		LEX_go_to_state(LEX_FSM_STATE_ID_START);
 		b_res = true;
 	}
 
@@ -547,30 +580,36 @@ static bool LEX_handle_STATE_WAIT_SCANNING_OPERATOR(void)
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_WHITESPACE);
 		b_res = true;
 	}
-	if (LEX_SCANNING_DELIM(c))
+	else if (LEX_SCANNING_DELIM(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_DELIM);
 		b_res = true;
 	}
-	if (LEX_SCANNING_NUMBER(c))
+	else if (LEX_SCANNING_NUMBER(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_NUMBER);
 		b_res = true;
 	}
-	if (LEX_SCANNING_OPERATOR(c))
+	else if (LEX_SCANNING_OPERATOR(c))
 	{
 		LEX_push_to_current_lexeme(c);
 		b_res = true;
 	}
-	if (LEX_SCANNING_CONTROL_CHAR(c))
+	else if (LEX_SCANNING_CONTROL_CHAR(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_CONTROL_CHAR);
+		b_res = true;
+	}
+	else
+	{
+		LEX_push_to_current_lexeme(c);
+		LEX_go_to_state(LEX_FSM_STATE_ID_START);
 		b_res = true;
 	}
 
@@ -595,31 +634,37 @@ static bool LEX_handle_STATE_WAIT_SCANNING_CONTROL_CHAR(void)
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_WHITESPACE);
 		b_res = true;
 	}
-	if (LEX_SCANNING_DELIM(c))
+	else if (LEX_SCANNING_DELIM(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_DELIM);
 		b_res = true;
 	}
-	if (LEX_SCANNING_NUMBER(c))
+	else if (LEX_SCANNING_NUMBER(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_NUMBER);
 		b_res = true;
 	}
-	if (LEX_SCANNING_OPERATOR(c))
+	else if (LEX_SCANNING_OPERATOR(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
 		LEX_go_to_state(LEX_FSM_STATE_ID_WAIT_SCANNING_OPERATOR);
 		b_res = true;
 	}
-	if (LEX_SCANNING_CONTROL_CHAR(c))
+	else if (LEX_SCANNING_CONTROL_CHAR(c))
 	{
 		LEX_flush_to_token();
 		LEX_push_to_current_lexeme(c);
+		b_res = true;
+	}
+	else
+	{
+		LEX_push_to_current_lexeme(c);
+		LEX_go_to_state(LEX_FSM_STATE_ID_START);
 		b_res = true;
 	}
 

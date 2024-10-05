@@ -46,7 +46,7 @@ TEST_TEAR_DOWN(unit_lex)
  *	U N I T   T E S T S
  ****************************************************************************************************/
 
-TEST(unit_lex, test_run_fsm_single_expression_nominal)
+TEST(unit_lex, test_single_expression_nominal)
 {
 	const LEX_token_list_t * kp_token_list;
 	uint32_t u32_tokens_checked = 0;
@@ -72,7 +72,7 @@ TEST(unit_lex, test_run_fsm_single_expression_nominal)
 	TEST_ASSERT_EQUAL(ku32_tokens_expected, u32_tokens_checked);
 }
 
-TEST(unit_lex, test_run_fsm_multiple_expression_nominal)
+TEST(unit_lex, test_multiple_expression_nominal)
 {
 	const LEX_token_list_t * kp_token_list;
 	uint32_t u32_tokens_checked = 0;
@@ -104,7 +104,7 @@ TEST(unit_lex, test_run_fsm_multiple_expression_nominal)
 	TEST_ASSERT_EQUAL(ku32_tokens_expected, u32_tokens_checked);
 }
 
-TEST(unit_lex, test_run_fsm_excessive_delims)
+TEST(unit_lex, test_excessive_delims)
 {
 	const LEX_token_list_t * kp_token_list;
 	uint32_t u32_tokens_checked = 0;
@@ -135,15 +135,70 @@ TEST(unit_lex, test_run_fsm_excessive_delims)
 	TEST_ASSERT_EQUAL(ku32_tokens_expected, u32_tokens_checked);
 }
 
+TEST(unit_lex, test_identifier_tokenization)
+{
+	const LEX_token_list_t * kp_token_list;
+	uint32_t u32_tokens_checked = 0;
+	const uint32_t ku32_tokens_expected = 15;
+	const uint32_t ku32_statements_expected = 6;
+
+	// 	test file reads:
+	//		123abc;
+	//		abc123;
+	//		1a2b3c;
+	//		a1b2c3;
+	//		a?@#$^;
+	//		_abcd_;
+	TEST_ASSERT_EQUAL(STATUS_OK, IO_HANDLER_load_source_file("test_files/unit_lex_3.rep"));
+
+	LEX_run_fsm();
+
+	kp_token_list = LEX_get_token_list();
+
+	TEST_ASSERT_EQUAL(ku32_statements_expected, LEX_get_num_statements());
+	TEST_ASSERT_EQUAL(ku32_tokens_expected, kp_token_list->u32_num_tokens);
+
+	// This is not a valid identifier (starts with a number)
+	ASSERT_CURRENT_TOKEN_VALID("123abc", LEX_TOKEN_TYPE_UNKNOWN, kp_token_list->p_tokens, u32_tokens_checked);
+	ASSERT_CURRENT_TOKEN_VALID(";", LEX_TOKEN_TYPE_DELIM, kp_token_list->p_tokens, u32_tokens_checked);
+
+	// This is a valid identifier
+	ASSERT_CURRENT_TOKEN_VALID("abc123", LEX_TOKEN_TYPE_IDENTIFIER, kp_token_list->p_tokens, u32_tokens_checked);
+	ASSERT_CURRENT_TOKEN_VALID(";", LEX_TOKEN_TYPE_DELIM, kp_token_list->p_tokens, u32_tokens_checked);
+
+	// This is not a valid identifier (also starts with a number)
+	ASSERT_CURRENT_TOKEN_VALID("1a2b3c", LEX_TOKEN_TYPE_UNKNOWN, kp_token_list->p_tokens, u32_tokens_checked);
+	ASSERT_CURRENT_TOKEN_VALID(";", LEX_TOKEN_TYPE_DELIM, kp_token_list->p_tokens, u32_tokens_checked);
+
+	// This is a valid identifier
+	ASSERT_CURRENT_TOKEN_VALID("a1b2c3", LEX_TOKEN_TYPE_IDENTIFIER, kp_token_list->p_tokens, u32_tokens_checked);
+	ASSERT_CURRENT_TOKEN_VALID(";", LEX_TOKEN_TYPE_DELIM, kp_token_list->p_tokens, u32_tokens_checked);
+
+	// NOTE:
+	// Based on the source file, you might assume we're getting an invalid token of a?@#$^. Not so.
+	// Refer to the state machine transitions for insight on why these are split up
+	ASSERT_CURRENT_TOKEN_VALID("a?@", LEX_TOKEN_TYPE_UNKNOWN, kp_token_list->p_tokens, u32_tokens_checked);
+
+	ASSERT_CURRENT_TOKEN_VALID("#", LEX_TOKEN_TYPE_UNKNOWN, kp_token_list->p_tokens, u32_tokens_checked);
+	ASSERT_CURRENT_TOKEN_VALID("$", LEX_TOKEN_TYPE_UNKNOWN, kp_token_list->p_tokens, u32_tokens_checked);
+	ASSERT_CURRENT_TOKEN_VALID("^", LEX_TOKEN_TYPE_UNKNOWN, kp_token_list->p_tokens, u32_tokens_checked);
+	ASSERT_CURRENT_TOKEN_VALID(";", LEX_TOKEN_TYPE_DELIM, kp_token_list->p_tokens, u32_tokens_checked);
+
+	// This is a valid identifier
+	ASSERT_CURRENT_TOKEN_VALID("_abcd_", LEX_TOKEN_TYPE_IDENTIFIER, kp_token_list->p_tokens, u32_tokens_checked);
+	ASSERT_CURRENT_TOKEN_VALID(";", LEX_TOKEN_TYPE_DELIM, kp_token_list->p_tokens, u32_tokens_checked);
+}
+
 /****************************************************************************************************
  *	M A I N
  ****************************************************************************************************/
 
 static void run_all_tests(void)
 {
-	RUN_TEST_CASE(unit_lex, test_run_fsm_single_expression_nominal);
-	RUN_TEST_CASE(unit_lex, test_run_fsm_multiple_expression_nominal);
-	RUN_TEST_CASE(unit_lex, test_run_fsm_excessive_delims);
+	RUN_TEST_CASE(unit_lex, test_single_expression_nominal);
+	RUN_TEST_CASE(unit_lex, test_multiple_expression_nominal);
+	RUN_TEST_CASE(unit_lex, test_excessive_delims);
+	RUN_TEST_CASE(unit_lex, test_identifier_tokenization);
 }
 
 int main(int argc, const char * argv[])

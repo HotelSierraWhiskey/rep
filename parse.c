@@ -202,7 +202,7 @@ static PARSE_node_t * PARSE_factor(void)
 		case LEX_TOKEN_TYPE_OPEN_PAREN:
 		{
 			PARSE_consume_token();
-			p_node = PARSE_expression();
+			p_node = PARSE_statement();
 			PARSE_consume_token();
 			return p_node;
 		}
@@ -234,15 +234,21 @@ static PARSE_node_t * PARSE_term(void)
 
 	PARSE_DBG("[%s] TERM\n", p_token->pc_lexeme);
 
-	if (p_token->type == LEX_TOKEN_TYPE_OP_MULTIPLY ||
-		p_token->type == LEX_TOKEN_TYPE_OP_DIVIDE ||
-		p_token->type == LEX_TOKEN_TYPE_OP_ADD ||
-		p_token->type == LEX_TOKEN_TYPE_OP_SUBTRACT ||
-		p_token->type == LEX_TOKEN_TYPE_OP_ASSIGNMENT)
+	while (p_token->type == LEX_TOKEN_TYPE_OP_MULTIPLY || p_token->type == LEX_TOKEN_TYPE_OP_DIVIDE)
 	{
 		memcpy(&saved_token, p_token, sizeof(LEX_token_t));
 		PARSE_consume_token();
-		p_node = PARSE_create_node(&saved_token, p_node, PARSE_factor());
+
+		if (p_token->type == LEX_TOKEN_TYPE_OP_DIVIDE)
+		{
+			p_node = PARSE_create_node(&saved_token, p_node, PARSE_factor());
+		}
+		else if (p_token->type == LEX_TOKEN_TYPE_OP_MULTIPLY)
+		{
+			p_node = PARSE_create_node(&saved_token, p_node, PARSE_term());
+		}
+		
+		p_token = PARSE_get_current_token();
 	}
 
 	return p_node;
@@ -259,15 +265,21 @@ static PARSE_node_t * PARSE_expression(void)
 
 	PARSE_DBG("[%s] EXPRESSION\n", p_token->pc_lexeme);
 
-	if (p_token->type == LEX_TOKEN_TYPE_OP_MULTIPLY ||
-		p_token->type == LEX_TOKEN_TYPE_OP_DIVIDE ||
-		p_token->type == LEX_TOKEN_TYPE_OP_ADD ||
-		p_token->type == LEX_TOKEN_TYPE_OP_SUBTRACT ||
-		p_token->type == LEX_TOKEN_TYPE_OP_ASSIGNMENT)
+	while (p_token->type == LEX_TOKEN_TYPE_OP_SUBTRACT || p_token->type == LEX_TOKEN_TYPE_OP_ADD)
 	{
 		memcpy(&saved_token, p_token, sizeof(LEX_token_t));
 		PARSE_consume_token();
-		p_node = PARSE_create_node(&saved_token, p_node, PARSE_term());
+
+		if (p_token->type == LEX_TOKEN_TYPE_OP_ADD)
+		{
+			p_node = PARSE_create_node(&saved_token, p_node, PARSE_expression());
+		}
+		else if (p_token->type == LEX_TOKEN_TYPE_OP_SUBTRACT)
+		{
+			p_node = PARSE_create_node(&saved_token, p_node, PARSE_term());
+		}
+
+		p_token = PARSE_get_current_token();
 	}
 
 	return p_node;
@@ -284,15 +296,11 @@ static PARSE_node_t * PARSE_statement(void)
 
 	PARSE_DBG("[%s] STATEMENT\n", p_token->pc_lexeme);
 
-	while (	p_token->type == LEX_TOKEN_TYPE_OP_MULTIPLY ||
-			p_token->type == LEX_TOKEN_TYPE_OP_DIVIDE ||
-			p_token->type == LEX_TOKEN_TYPE_OP_ADD ||
-			p_token->type == LEX_TOKEN_TYPE_OP_SUBTRACT ||
-			p_token->type == LEX_TOKEN_TYPE_OP_ASSIGNMENT)
+	while (	p_token->type == LEX_TOKEN_TYPE_OP_ASSIGNMENT)
 	{
 		memcpy(&saved_token, p_token, sizeof(LEX_token_t));
 		PARSE_consume_token();
-		p_node = PARSE_create_node(&saved_token, p_node, PARSE_term());
+		p_node = PARSE_create_node(&saved_token, p_node, PARSE_expression());
 
 		if (PARSE_get_current_token()->type == LEX_TOKEN_TYPE_DELIM)
 		{

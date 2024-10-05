@@ -67,7 +67,7 @@ typedef struct _LEX_fsm_info
 	LEX_token_list_t		token_list;
 	uint32_t				u32_token_buffer_capacity;
 	char					p_current_lexeme[LEX_MAX_LEXEME_SIZE];
-	uint8_t					u8_current_lexeme_index;
+	uint16_t				u16_current_lexeme_index;
 	uint32_t				u32_num_statements;
 } LEX_info_t;
 
@@ -79,7 +79,7 @@ typedef struct _LEX_fsm_info
  *	FSM-related functions
  */
 static bool 				LEX_handle_STATE_START							(void);
-static bool 				LEX_handle_STATE_WAIT_SCANNING_IDENTIFIER			(void);
+static bool 				LEX_handle_STATE_WAIT_SCANNING_IDENTIFIER		(void);
 static bool 				LEX_handle_STATE_WAIT_SCANNING_NUMBER			(void);
 static bool 				LEX_handle_STATE_WAIT_SCANNING_OPERATOR			(void);
 static bool 				LEX_handle_STATE_WAIT_SCANNING_CONTROL_CHAR		(void);
@@ -281,7 +281,7 @@ static inline void LEX_go_to_state(LEX_fsm_state_id_t state_id)
 static void LEX_flush_to_token(void)
 {
 
-	if (lex_info.u8_current_lexeme_index == 0)
+	if (lex_info.u16_current_lexeme_index == 0)
 	{
 		return;
 	}
@@ -298,13 +298,23 @@ static void LEX_flush_to_token(void)
 	lex_info.current_token.type = LEX_token_type_from_lexeme();
 	lex_info.current_token.u32_column = lex_info.u32_column;
 	lex_info.current_token.u32_row = lex_info.u32_row;
-	strncpy(lex_info.current_token.pc_lexeme, lex_info.p_current_lexeme, LEX_MAX_LEXEME_SIZE);
+	
+	// Copy the lexeme over, if it's less than the maximum size. Otherwise, set it as invalid
+	if (lex_info.u16_current_lexeme_index <= LEX_MAX_LEXEME_SIZE)
+	{
+		strncpy(lex_info.current_token.pc_lexeme, lex_info.p_current_lexeme, LEX_MAX_LEXEME_SIZE);
+	}
+	else
+	{
+		strncpy(lex_info.current_token.pc_lexeme, LEX_MAX_LEXEME_SIZE_EXCEEDED, LEX_MAX_LEXEME_SIZE);
+		lex_info.current_token.type = LEX_TOKEN_TYPE_UNKNOWN;
+	}
 
 	// Append the token
 	memcpy(&lex_info.token_list.p_tokens[lex_info.token_list.u32_num_tokens++], &lex_info.current_token, sizeof(LEX_token_t));
 
 	// Zero lexeme tracking members
-	lex_info.u8_current_lexeme_index = 0;
+	lex_info.u16_current_lexeme_index = 0;
 	memset(lex_info.p_current_lexeme, 0, LEX_MAX_LEXEME_SIZE);
 }
 
@@ -313,7 +323,7 @@ static LEX_token_type_t LEX_token_type_from_lexeme(void)
     LEX_token_type_t type = LEX_TOKEN_TYPE_UNKNOWN;
     bool b_is_numeric = true;
 
-    ASSERT(lex_info.u8_current_lexeme_index > 0);
+    ASSERT(lex_info.u16_current_lexeme_index > 0);
     
     // We can get some of the easy ones out of the way here
     if (strlen(lex_info.p_current_lexeme) == 1)
@@ -377,8 +387,8 @@ static LEX_token_type_t LEX_token_type_from_lexeme(void)
 
 static inline void LEX_push_to_current_lexeme(char c)
 {
-	lex_info.p_current_lexeme[lex_info.u8_current_lexeme_index++] = c;
-	lex_info.p_current_lexeme[lex_info.u8_current_lexeme_index] = '\0';
+		lex_info.p_current_lexeme[lex_info.u16_current_lexeme_index++] = c;
+		lex_info.p_current_lexeme[lex_info.u16_current_lexeme_index] = '\0';
 }
 
 static bool LEX_handle_STATE_START(void)
@@ -699,7 +709,7 @@ static void LEX_fsm_report (void)
 
 static void LEX_restore_defaults (void)
 {
-	lex_info.u8_current_lexeme_index = 0;
+	lex_info.u16_current_lexeme_index = 0;
 	lex_info.u32_num_statements = 0;
 	memset(lex_info.p_current_lexeme, 0, LEX_MAX_LEXEME_SIZE);
 	lex_info.token_list.u32_num_tokens = 0;

@@ -5,7 +5,7 @@
  ****************************************************************************************************/
 
 #ifdef DEBUG_PARSE
-#define PARSE_DBG(fmt, ...) printf("PARSE:\t" fmt, ##__VA_ARGS__)
+#define PARSE_DBG(fmt, ...) printf(BOLD("PARSE:\t") fmt, ##__VA_ARGS__)
 #else
 #define PARSE_DBG(fmt, ...)
 #endif
@@ -56,6 +56,7 @@ static PARSE_info_t parse_info;
 /*
  *	Parsing rules
  */
+static PARSE_node_t * 				PARSE_statement			(void);
 static PARSE_node_t * 				PARSE_expression		(void);
 static PARSE_node_t * 				PARSE_term				(void);
 static PARSE_node_t * 				PARSE_factor			(void);
@@ -94,11 +95,13 @@ void PARSE_run_rdp(void)
 
 	for (uint32_t i = 0; i < LEX_get_num_statements(); i++)
 	{
-		p_root = PARSE_expression();
+		p_root = PARSE_statement();
 		PARSE_DBG("Tree:\n");
 		PARSE_traverse_tree(p_root, 0, PARSE_NODE_SIDE_ROOT);
 		PARSE_consume_token();
 	}
+
+	PARSE_DBG(BOLD(BRIGHT_GREEN("Done\n")));
 }
 
 /****************************************************************************************************
@@ -209,6 +212,12 @@ static PARSE_node_t * PARSE_factor(void)
 			PARSE_consume_token();
 			return PARSE_create_node(&saved_token, NULL, NULL);
 		}
+		case LEX_TOKEN_TYPE_IDENTIFIER:
+		{
+			memcpy(&saved_token, p_token, sizeof(LEX_token_t));
+			PARSE_consume_token();
+			return PARSE_create_node(&saved_token, NULL, NULL);
+		}
 	}
 
 	return NULL; // Unreached
@@ -225,18 +234,15 @@ static PARSE_node_t * PARSE_term(void)
 
 	PARSE_DBG("[%s] TERM\n", p_token->pc_lexeme);
 
-	switch (p_token->type)
+	if (p_token->type == LEX_TOKEN_TYPE_OP_MULTIPLY ||
+		p_token->type == LEX_TOKEN_TYPE_OP_DIVIDE ||
+		p_token->type == LEX_TOKEN_TYPE_OP_ADD ||
+		p_token->type == LEX_TOKEN_TYPE_OP_SUBTRACT ||
+		p_token->type == LEX_TOKEN_TYPE_OP_ASSIGNMENT)
 	{
-		case LEX_TOKEN_TYPE_OP_MULTIPLY:
-		case LEX_TOKEN_TYPE_OP_DIVIDE:
-		case LEX_TOKEN_TYPE_OP_ADD:
-		case LEX_TOKEN_TYPE_OP_SUBTRACT:
-		{
-			memcpy(&saved_token, p_token, sizeof(LEX_token_t));
-			PARSE_consume_token();
-			p_node = PARSE_create_node(&saved_token, p_node, PARSE_factor());
-			break;
-		}
+		memcpy(&saved_token, p_token, sizeof(LEX_token_t));
+		PARSE_consume_token();
+		p_node = PARSE_create_node(&saved_token, p_node, PARSE_factor());
 	}
 
 	return p_node;
@@ -253,8 +259,36 @@ static PARSE_node_t * PARSE_expression(void)
 
 	PARSE_DBG("[%s] EXPRESSION\n", p_token->pc_lexeme);
 
-	while (p_token->type == LEX_TOKEN_TYPE_OP_MULTIPLY || p_token->type == LEX_TOKEN_TYPE_OP_DIVIDE ||
-			p_token->type == LEX_TOKEN_TYPE_OP_ADD || p_token->type == LEX_TOKEN_TYPE_OP_SUBTRACT)
+	if (p_token->type == LEX_TOKEN_TYPE_OP_MULTIPLY ||
+		p_token->type == LEX_TOKEN_TYPE_OP_DIVIDE ||
+		p_token->type == LEX_TOKEN_TYPE_OP_ADD ||
+		p_token->type == LEX_TOKEN_TYPE_OP_SUBTRACT ||
+		p_token->type == LEX_TOKEN_TYPE_OP_ASSIGNMENT)
+	{
+		memcpy(&saved_token, p_token, sizeof(LEX_token_t));
+		PARSE_consume_token();
+		p_node = PARSE_create_node(&saved_token, p_node, PARSE_term());
+	}
+
+	return p_node;
+}
+
+/*
+ *	Statement grammar rule
+ */
+static PARSE_node_t * PARSE_statement(void)
+{
+	PARSE_node_t * 	p_node = PARSE_expression();
+	LEX_token_t *	p_token = PARSE_get_current_token();
+	LEX_token_t		saved_token;
+
+	PARSE_DBG("[%s] STATEMENT\n", p_token->pc_lexeme);
+
+	while (	p_token->type == LEX_TOKEN_TYPE_OP_MULTIPLY ||
+			p_token->type == LEX_TOKEN_TYPE_OP_DIVIDE ||
+			p_token->type == LEX_TOKEN_TYPE_OP_ADD ||
+			p_token->type == LEX_TOKEN_TYPE_OP_SUBTRACT ||
+			p_token->type == LEX_TOKEN_TYPE_OP_ASSIGNMENT)
 	{
 		memcpy(&saved_token, p_token, sizeof(LEX_token_t));
 		PARSE_consume_token();

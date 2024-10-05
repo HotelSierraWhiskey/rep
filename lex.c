@@ -6,7 +6,7 @@
  ****************************************************************************************************/
 
 #ifdef DEBUG_LEX
-#define LEX_DBG(fmt, ...)				printf("LEX:\t"fmt, ##__VA_ARGS__)
+#define LEX_DBG(fmt, ...)				printf(BOLD("LEX:\t")fmt, ##__VA_ARGS__)
 #else
 #define LEX_DBG(fmt, ...)
 #endif
@@ -240,6 +240,8 @@ void LEX_run_fsm(void)
 					lex_info.token_list.p_tokens[i].pc_lexeme, 
 					LEX_get_token_type_descriptor(lex_info.token_list.p_tokens[i].type));
 	}
+
+	LEX_DBG(BOLD(BRIGHT_GREEN("Done\n")));
 }
 
 /*
@@ -688,7 +690,7 @@ static void LEX_fsm_report (void)
 		case '\t': {strncpy(pc_buff, "\\t", 3); break;}
 	}
 
-	LEX_DBG("Received char [%s] in state %-30s\t[row: %03u, column %03u]\n", 
+	LEX_DBG("Received char " "["BOLD("%s")"]" " in state %-30s\t\t[row: %03u, column %03u]\n", 
 						pc_buff, 
 						lex_info.p_state->descriptor, 
 						lex_info.u32_row, 

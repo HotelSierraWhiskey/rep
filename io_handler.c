@@ -5,13 +5,13 @@
  ****************************************************************************************************/
 
 #ifdef DEBUG_IO
-#define IO_DBG(fmt, ...)				printf("IO:\t"fmt, ##__VA_ARGS__)
+#define IO_DBG(fmt, ...)				printf(BOLD("IO:\t")fmt, ##__VA_ARGS__)
 #else
 #define IO_DBG(fmt, ...)
 #endif
 
 #define IO_REP_EXT_LENGTH				(4)
-#define IO_MIN_REP_FILE_NAME_LENGTH		(IO_REP_EXT_LENGTH + 1)	// Ex: a.rep
+#define IO_MIN_REP_FILE_NAME_LENGTH		(IO_REP_EXT_LENGTH + 1)	// For example: a.rep
 
 /****************************************************************************************************
  *	S T A T I C   V A R I A B L E S
@@ -90,9 +90,11 @@ STATUS_t IO_HANDLER_load_source_file(const char * kpc_fname)
 		return STATUS_FILE_ERROR;
 	}
 
+	IO_DBG("File size: %u bytes\n", io_source_info.u32_size);
+
 	io_source_info.pc_source_buffer[i32_file_size] = '\0';
 
-	IO_DBG("Done\n");
+	IO_DBG(BOLD(BRIGHT_GREEN("Done\n")));
 
 	return STATUS_OK;
 }

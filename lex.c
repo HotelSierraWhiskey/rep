@@ -24,12 +24,12 @@
 #define LEX_SCANNING_WHITESPACE(c)		(c == ' ' || c == '\t' || LEX_SCANNING_NEWLINE(c) || c == '\r' || c == '\v' || c == '\f')
 #define LEX_SCANNING_DELIM(c)			(c == ';')
 #define LEX_SCANNING_SPECIAL_CHAR(c)	(!LEX_SCANNING_ALPHA(c) && \
-										!LEX_SCANNING_NUMBER(c) && \
-										!LEX_SCANNING_OPERATOR(c) && \
-										!LEX_SCANNING_CONTROL_CHAR(c) && \
-										!LEX_SCANNING_NEWLINE(c) && \
-										!LEX_SCANNING_WHITESPACE(c) && \
-										!LEX_SCANNING_DELIM(c))
+											!LEX_SCANNING_NUMBER(c) && \
+											!LEX_SCANNING_OPERATOR(c) && \
+											!LEX_SCANNING_CONTROL_CHAR(c) && \
+											!LEX_SCANNING_NEWLINE(c) && \
+											!LEX_SCANNING_WHITESPACE(c) && \
+											!LEX_SCANNING_DELIM(c))
 
 /****************************************************************************************************
  *	T Y P E D E F S
@@ -299,7 +299,7 @@ static void LEX_flush_to_token(void)
 	lex_info.current_token.u32_column = lex_info.u32_column;
 	lex_info.current_token.u32_row = lex_info.u32_row;
 	
-	// Copy the lexeme over, if it's less than the maximum size. Otherwise, set it as invalid
+	// Copy the lexeme over if we can. Otherwise, set it as invalid
 	if (lex_info.u16_current_lexeme_index <= LEX_MAX_LEXEME_SIZE)
 	{
 		strncpy(lex_info.current_token.pc_lexeme, lex_info.p_current_lexeme, LEX_MAX_LEXEME_SIZE);
@@ -321,7 +321,7 @@ static void LEX_flush_to_token(void)
 static LEX_token_type_t LEX_token_type_from_lexeme(void)
 {
     LEX_token_type_t type = LEX_TOKEN_TYPE_UNKNOWN;
-    bool b_is_numeric = true;
+    bool b_is_numeric;
 
     ASSERT(lex_info.u16_current_lexeme_index > 0);
     
@@ -330,23 +330,35 @@ static LEX_token_type_t LEX_token_type_from_lexeme(void)
     {
         char c = lex_info.p_current_lexeme[0];
 
-        switch (c)
-        {
-            case '0' ... '9':   {type = LEX_TOKEN_TYPE_INT_LITERAL; 	break;}
-            case '(':           {type = LEX_TOKEN_TYPE_OPEN_PAREN;  	break;}
-            case ')':           {type = LEX_TOKEN_TYPE_CLOSE_PAREN; 	break;}
-            case '=':           {type = LEX_TOKEN_TYPE_OP_ASSIGNMENT; 	break;}
-            case '+':           {type = LEX_TOKEN_TYPE_OP_ADD;      	break;}
-            case '-':           {type = LEX_TOKEN_TYPE_OP_SUBTRACT; 	break;}
-            case '*':           {type = LEX_TOKEN_TYPE_OP_MULTIPLY; 	break;}
-            case '/':           {type = LEX_TOKEN_TYPE_OP_DIVIDE;   	break;}
-            case ';':           {type = LEX_TOKEN_TYPE_DELIM;       	break;}
-            default:            {type = LEX_TOKEN_TYPE_UNKNOWN;     	break;}
-        }
+		// This is a single-character variable
+		if (LEX_SCANNING_ALPHA(c))
+		{
+			type = LEX_TOKEN_TYPE_IDENTIFIER;
+		}
+		// These are other possible single-character types
+		else
+		{
+			switch (c)
+			{
+				case '0' ... '9':   {type = LEX_TOKEN_TYPE_INT_LITERAL; 	break;}
+				case '(':           {type = LEX_TOKEN_TYPE_OPEN_PAREN;  	break;}
+				case ')':           {type = LEX_TOKEN_TYPE_CLOSE_PAREN; 	break;}
+				case '=':           {type = LEX_TOKEN_TYPE_OP_ASSIGNMENT; 	break;}
+				case '+':           {type = LEX_TOKEN_TYPE_OP_ADD;      	break;}
+				case '-':           {type = LEX_TOKEN_TYPE_OP_SUBTRACT; 	break;}
+				case '*':           {type = LEX_TOKEN_TYPE_OP_MULTIPLY; 	break;}
+				case '/':           {type = LEX_TOKEN_TYPE_OP_DIVIDE;   	break;}
+				case ';':           {type = LEX_TOKEN_TYPE_DELIM;       	break;}
+				default:            {type = LEX_TOKEN_TYPE_UNKNOWN;     	break;}
+			}
+		}
     }
+	// We need to determine the type of a multi-character lexeme
     else
     {   
 		// If any character is not a number, the lexeme is not an int literal
+		b_is_numeric = true;
+		
         for (uint32_t i = 0; i < strlen(lex_info.p_current_lexeme); i++)
         {
             if (!isdigit(lex_info.p_current_lexeme[i]))

@@ -20,12 +20,16 @@
  *	T Y P E D E F S
  ****************************************************************************************************/
 
+typedef const PARSE_node_t ** parse_tree_container_t;
+
 typedef struct
 {
 	PARSE_node_t *				p_root;
 	const LEX_token_list_t *	p_token_list;
 	uint32_t 					u32_current_token_index;
 	uint32_t					u32_num_statements;
+	uint32_t					u32_num_trees;
+	parse_tree_container_t		trees;
 } PARSE_info_t;
 
 typedef enum
@@ -75,6 +79,7 @@ static void 						PARSE_consume_token		(void);
 static inline LEX_token_t * 		PARSE_get_current_token	(void);
 static inline LEX_token_t * 		PARSE_get_next_token	(void);
 static inline PARSE_node_t *		PARSE_create_node		(LEX_token_t * p_token, PARSE_node_t * p_left, PARSE_node_t * p_right);
+static void 						PARSE_save_tree			(const PARSE_node_t * p_root);
 
 /****************************************************************************************************
  *	F U N C T I O N S
@@ -90,6 +95,8 @@ void PARSE_init(void)
 	parse_info.p_token_list = LEX_get_token_list();
 	parse_info.u32_num_statements = LEX_get_num_statements();
 	parse_info.u32_current_token_index = 0;
+	parse_info.u32_num_trees = 0;
+	parse_info.trees = malloc(sizeof(PARSE_node_t *));
 }
 
 /*
@@ -102,6 +109,7 @@ void PARSE_run_rdp(void)
 	for (uint32_t i = 0; i < LEX_get_num_statements(); i++)
 	{
 		p_root = PARSE_statement();
+		PARSE_save_tree(p_root);
 		PARSE_DBG("Tree:\n");
 		PARSE_traverse_tree(p_root, 0, PARSE_NODE_SIDE_ROOT);
 		PARSE_consume_token();
@@ -186,6 +194,12 @@ static inline PARSE_node_t * PARSE_create_node (LEX_token_t * p_token, PARSE_nod
 	p_node->p_left = p_left;
 	p_node->p_right = p_right;
 	return p_node;
+}
+
+static void PARSE_save_tree(const PARSE_node_t * p_root)
+{
+	parse_info.trees = realloc(parse_info.trees, sizeof(PARSE_node_t *) * parse_info.u32_num_trees + 1);
+	parse_info.trees[parse_info.u32_num_trees++] = p_root;
 }
 
 /****************************************************************************************************

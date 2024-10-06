@@ -14,8 +14,8 @@ COMMON_SRCS = io_handler.c lex.c parse.c
 ##################################################
 
 # All unit test dirs and targets
-UNIT_TEST_DIRS = unit_io_handler unit_lex
-UNIT_TEST_TARGETS = $(UNIT_IO_HANDLER) $(UNIT_LEX)
+UNIT_TEST_DIRS = unit_io_handler unit_lex unit_parse
+UNIT_TEST_TARGETS = $(UNIT_IO_HANDLER) $(UNIT_LEX) $(UNIT_PARSE)
 
 # Unity flags, includes, srcs
 UNITY_FLAGS = -DUNITY_SKIP_DEFAULT_RUNNER -DUNITY_INCLUDE_PRINT_FORMATTED -DUNITY_OUTPUT_COLOR
@@ -75,6 +75,23 @@ $(UNIT_LEX_TARGET): $(UNIT_LEX_OBJS)
 $(UNIT_LEX): $(UNIT_LEX_TARGET)
 
 ##################################################
+# Unit Parse
+##################################################
+UNIT_PARSE = unit_parse
+UNIT_PARSE_PATH = tests/$(UNIT_PARSE)
+UNIT_PARSE_TARGET = $(UNIT_PARSE_PATH)/$(UNIT_PARSE)
+UNIT_PARSE_SRCS = $(COMMON_SRCS) $(TEST_SRCS) $(UNIT_PARSE_PATH)/$(UNIT_PARSE).c
+UNIT_PARSE_OBJS = $(COMMON_SRCS:.c=.o) $(TEST_SRCS:.c=._test.o) $(UNIT_PARSE_PATH)/$(UNIT_PARSE)._$(UNIT_PARSE).o
+
+%._$(UNIT_PARSE).o: %.c
+	$(CC) $(CFLAGS) $(TEST_FLAGS) $(TEST_INC) -c $< -o $@
+
+$(UNIT_PARSE_TARGET): $(UNIT_PARSE_OBJS)
+	$(CC) $(UNIT_PARSE_OBJS) -o $(UNIT_PARSE_TARGET)
+
+$(UNIT_PARSE): $(UNIT_PARSE_TARGET)
+
+##################################################
 # Main Application
 ##################################################
 TARGET = rep
@@ -93,7 +110,7 @@ compile: $(TARGET)
 # Utils
 ##################################################
 clean:
-	rm -f $(TARGET) $(OBJS) $(UNIT_IO_HANDLER_TARGET) $(UNIT_IO_HANDLER_OBJS) $(UNIT_LEX_TARGET) $(UNIT_LEX_OBJS)
+	rm -f $(TARGET) $(OBJS) $(UNIT_IO_HANDLER_TARGET) $(UNIT_IO_HANDLER_OBJS) $(UNIT_LEX_TARGET) $(UNIT_LEX_OBJS) $(UNIT_PARSE_TARGET) $(UNIT_PARSE_OBJS)
 
 run:
 	./rep
@@ -105,4 +122,4 @@ test: $(UNIT_TEST_TARGETS)
 		(cd tests/$$dir && ./$$dir); \
 	done
 
-.PHONY: compile unit_io_handler unit_lex clean run
+.PHONY: compile unit_io_handler unit_lex unit_parse clean run

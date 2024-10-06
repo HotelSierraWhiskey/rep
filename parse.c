@@ -5,9 +5,15 @@
  ****************************************************************************************************/
 
 #ifdef DEBUG_PARSE
-#define PARSE_DBG(fmt, ...) printf(BOLD("PARSE:\t") fmt, ##__VA_ARGS__)
+#define PARSE_DBG(fmt, ...)				printf(BOLD("PARSE:\t")fmt, ##__VA_ARGS__)
+#define PARSE_GREEN(fmt, ...)			printf(BOLD(BRIGHT_GREEN("PARSE:\t"))fmt, ##__VA_ARGS__)
+#define PARSE_WARN(fmt, ...)			printf(BOLD(BRIGHT_YELLOW("PARSE:\t"))fmt, ##__VA_ARGS__)
+#define PARSE_ERR(fmt, ...)				printf(BOLD(BRIGHT_RED("PARSE:\t"))fmt, ##__VA_ARGS__)
 #else
 #define PARSE_DBG(fmt, ...)
+#define PARSE_GREEN(fmt, ...)
+#define PARSE_WARN(fmt, ...)
+#define PARSE_ERR(fmt, ...)
 #endif
 
 /****************************************************************************************************

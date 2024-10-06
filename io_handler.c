@@ -6,8 +6,14 @@
 
 #ifdef DEBUG_IO
 #define IO_DBG(fmt, ...)				printf(BOLD("IO:\t")fmt, ##__VA_ARGS__)
+#define IO_GREEN(fmt, ...)				printf(BOLD(BRIGHT_GREEN("IO:\t"))fmt, ##__VA_ARGS__)
+#define IO_WARN(fmt, ...)				printf(BOLD(BRIGHT_YELLOW("IO:\t"))fmt, ##__VA_ARGS__)
+#define IO_ERR(fmt, ...)				printf(BOLD(BRIGHT_RED("IO:\t"))fmt, ##__VA_ARGS__)
 #else
 #define IO_DBG(fmt, ...)
+#define IO_GREEN(fmt, ...)
+#define IO_WARN(fmt, ...)
+#define IO_ERR(fmt, ...)
 #endif
 
 #define IO_REP_EXT_LENGTH				(4)
@@ -29,6 +35,7 @@ STATUS_t IO_HANDLER_load_source_file(const char * kpc_fname)
 
 	if (kpc_fname == NULL)
 	{
+		IO_ERR("NULL input\n");
 		return STATUS_FAILED;
 	}
 
@@ -36,11 +43,13 @@ STATUS_t IO_HANDLER_load_source_file(const char * kpc_fname)
 
 	if (u32_file_name_length < IO_MIN_REP_FILE_NAME_LENGTH)
 	{
+		IO_ERR("File name too short\n");
 		return STATUS_FAILED;
 	}
 
 	if (strncmp(kpc_fname + (u32_file_name_length - IO_REP_EXT_LENGTH), ".rep", IO_REP_EXT_LENGTH) != 0)
 	{
+		IO_ERR("Invalid file\n");
 		return STATUS_INVALID_FILE_ERROR;
 	}
 
@@ -54,11 +63,13 @@ STATUS_t IO_HANDLER_load_source_file(const char * kpc_fname)
 
 	if (file == NULL)
 	{
+		IO_ERR("File not found: %s\n", kpc_fname);
 		return STATUS_FILE_NOT_FOUND_ERROR;
 	}
 
 	if (fseek(file, 0, SEEK_END) != 0)
 	{
+		IO_ERR("File error\n");
 		return STATUS_FILE_ERROR;
 	}
 
@@ -66,11 +77,13 @@ STATUS_t IO_HANDLER_load_source_file(const char * kpc_fname)
 
 	if (i32_file_size == -1)
 	{
+		IO_ERR("File error\n");
 		return STATUS_FILE_ERROR;
 	}
 
 	if (i32_file_size == 0)
 	{
+		IO_ERR("Empty File\n");
 		return STATUS_EMTPY_FILE;
 	}
 
@@ -80,6 +93,7 @@ STATUS_t IO_HANDLER_load_source_file(const char * kpc_fname)
 
 	if (io_source_info.pc_source_buffer == NULL)
 	{
+		IO_ERR("Memory error\n");
 		return STATUS_MEMORY_ERROR;
 	}
 
@@ -87,6 +101,7 @@ STATUS_t IO_HANDLER_load_source_file(const char * kpc_fname)
 
 	if (io_source_info.u32_size != i32_file_size)
 	{
+		IO_ERR("File error\n");
 		return STATUS_FILE_ERROR;
 	}
 

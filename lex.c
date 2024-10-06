@@ -7,8 +7,14 @@
 
 #ifdef DEBUG_LEX
 #define LEX_DBG(fmt, ...)				printf(BOLD("LEX:\t")fmt, ##__VA_ARGS__)
+#define LEX_GREEN(fmt, ...)				printf(BOLD(BRIGHT_GREEN("LEX:\t"))fmt, ##__VA_ARGS__)
+#define LEX_WARN(fmt, ...)				printf(BOLD(BRIGHT_YELLOW("LEX:\t"))fmt, ##__VA_ARGS__)
+#define LEX_ERR(fmt, ...)				printf(BOLD(BRIGHT_RED("LEX:\t"))fmt, ##__VA_ARGS__)
 #else
 #define LEX_DBG(fmt, ...)
+#define LEX_GREEN(fmt, ...)
+#define LEX_WARN(fmt, ...)
+#define LEX_ERR(fmt, ...)
 #endif
 
 #define LEX_INITIAL_TOKEN_BUFFER_SIZE	(4)
@@ -358,7 +364,7 @@ static LEX_token_type_t LEX_token_type_from_lexeme(void)
     {   
 		// If any character is not a number, the lexeme is not an int literal
 		b_is_numeric = true;
-		
+
         for (uint32_t i = 0; i < strlen(lex_info.p_current_lexeme); i++)
         {
             if (!isdigit(lex_info.p_current_lexeme[i]))

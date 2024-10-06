@@ -19,12 +19,12 @@ TEST_GROUP(unit_parse);
 
 TEST_SETUP(unit_parse)
 {
-	// TEST_ASSERT_EQUAL(STATUS_OK, LEX_init());
+	// Nothing
 }
 
 TEST_TEAR_DOWN(unit_parse)
 {
-	// TEST_ASSERT_EQUAL(STATUS_OK, LEX_deinit());
+	// Nothing
 }
 
 /****************************************************************************************************
@@ -33,11 +33,25 @@ TEST_TEAR_DOWN(unit_parse)
 
 TEST(unit_parse, test_parse_init)
 {
+	PARSE_tree_container_t trees;
+
 	TEST_ASSERT_EQUAL(STATUS_OK, IO_HANDLER_load_source_file("test_files/unit_parse_0.rep"));
 	TEST_ASSERT_EQUAL(STATUS_OK, LEX_init());
 	LEX_run_fsm();
 	PARSE_init();
 	PARSE_run_rdp();
+
+	trees = PARSE_get_all_trees();
+
+	// TODO: Are these always equal?
+	TEST_ASSERT_EQUAL(PARSE_get_num_trees(), LEX_get_num_statements());
+
+	TEST_ASSERT_NOT_NULL(trees);
+
+	for (uint32_t i = 0; i < LEX_get_num_statements(); i++)
+	{
+		PARSE_traverse_tree(trees[i], 0, PARSE_NODE_SIDE_ROOT);
+	}
 }
 
 /****************************************************************************************************

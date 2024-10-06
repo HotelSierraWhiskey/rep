@@ -20,8 +20,6 @@
  *	T Y P E D E F S
  ****************************************************************************************************/
 
-typedef const PARSE_node_t ** parse_tree_container_t;
-
 typedef struct
 {
 	PARSE_node_t *				p_root;
@@ -29,7 +27,7 @@ typedef struct
 	uint32_t 					u32_current_token_index;
 	uint32_t					u32_num_statements;
 	uint32_t					u32_num_trees;
-	parse_tree_container_t		trees;
+	PARSE_tree_container_t		trees;
 } PARSE_info_t;
 
 typedef enum
@@ -40,15 +38,6 @@ typedef enum
 	////////////////////
 	PARSE_RULE_NUM_RULES
 } PARSE_rule_t;
-
-typedef enum
-{
-	PARSE_NODE_SIDE_ROOT = 0,
-	PARSE_NODE_SIDE_LEFT,
-	PARSE_NODE_SIDE_RIGHT,
-	////////////////////
-	PARSE_NODE_SIDE_NUM_SIDES
-} PARSE_node_side_t;
 
 /****************************************************************************************************
  *	S T A T I C   V A R I A B L E S
@@ -74,7 +63,6 @@ static PARSE_node_t * 				PARSE_factor			(void);
 /*
  *	Helpers
  */
-static void 						PARSE_traverse_tree		(const PARSE_node_t *p_node, uint32_t u32_level, uint8_t side);
 static void 						PARSE_consume_token		(void);
 static inline LEX_token_t * 		PARSE_get_current_token	(void);
 static inline LEX_token_t * 		PARSE_get_next_token	(void);
@@ -118,22 +106,23 @@ void PARSE_run_rdp(void)
 	PARSE_DBG(BOLD(BRIGHT_GREEN("Done\n")));
 }
 
-/****************************************************************************************************
- *	S T A T I C   F U N C T I O N S
- ****************************************************************************************************/
-
 /*
- *	Moves the current token index forward
+ *	Get all parse trees
  */
-static void PARSE_consume_token(void)
+const PARSE_tree_container_t PARSE_get_all_trees (void)
 {
-	parse_info.u32_current_token_index++;
+	return parse_info.trees;
 }
 
 /*
- *	For visual debugging only
+ *	Get the number of trees parsed
  */
-static void PARSE_traverse_tree(const PARSE_node_t *p_node, uint32_t u32_level, uint8_t u8_side)
+uint32_t PARSE_get_num_trees(void)
+{
+	return parse_info.u32_num_trees;
+}
+
+void PARSE_traverse_tree(const PARSE_node_t *p_node, uint32_t u32_level, uint8_t u8_side)
 {
 	const char kpc_sides[PARSE_NODE_SIDE_NUM_SIDES] =
 	{
@@ -163,6 +152,18 @@ static void PARSE_traverse_tree(const PARSE_node_t *p_node, uint32_t u32_level, 
 
 	PARSE_traverse_tree(p_node->p_left, u32_level + 1, PARSE_NODE_SIDE_LEFT);
 	PARSE_traverse_tree(p_node->p_right, u32_level + 1, PARSE_NODE_SIDE_RIGHT);
+}
+
+/****************************************************************************************************
+ *	S T A T I C   F U N C T I O N S
+ ****************************************************************************************************/
+
+/*
+ *	Moves the current token index forward
+ */
+static void PARSE_consume_token(void)
+{
+	parse_info.u32_current_token_index++;
 }
 
 /*
@@ -198,6 +199,7 @@ static inline PARSE_node_t * PARSE_create_node (LEX_token_t * p_token, PARSE_nod
 
 static void PARSE_save_tree(const PARSE_node_t * p_root)
 {
+	ASSERT(p_root);
 	parse_info.trees = realloc(parse_info.trees, sizeof(PARSE_node_t *) * parse_info.u32_num_trees + 1);
 	parse_info.trees[parse_info.u32_num_trees++] = p_root;
 }

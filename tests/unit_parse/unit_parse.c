@@ -33,7 +33,7 @@ TEST_TEAR_DOWN(unit_parse)
 
 TEST(unit_parse, test_parse_init)
 {
-	PARSE_tree_container_t trees;
+	const PARSE_tree_list_t * p_tree_list;
 
 	TEST_ASSERT_EQUAL(STATUS_OK, IO_HANDLER_load_source_file("test_files/unit_parse_0.rep"));
 	TEST_ASSERT_EQUAL(STATUS_OK, LEX_init());
@@ -41,16 +41,16 @@ TEST(unit_parse, test_parse_init)
 	PARSE_init();
 	PARSE_run_rdp();
 
-	trees = PARSE_get_all_trees();
+	p_tree_list = PARSE_get_tree_list();
 
 	// TODO: Are these always equal?
-	TEST_ASSERT_EQUAL(PARSE_get_num_trees(), LEX_get_num_statements());
+	TEST_ASSERT_EQUAL(p_tree_list->u32_num_trees, LEX_get_num_statements());
 
-	TEST_ASSERT_NOT_NULL(trees);
+	TEST_ASSERT_NOT_NULL(p_tree_list);
 
 	for (uint32_t i = 0; i < LEX_get_num_statements(); i++)
 	{
-		PARSE_traverse_tree(trees[i], 0, PARSE_NODE_SIDE_ROOT);
+		PARSE_traverse_tree(p_tree_list->trees[i], 0, PARSE_NODE_SIDE_ROOT);
 	}
 }
 

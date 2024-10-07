@@ -23,8 +23,13 @@ typedef struct _PARSE_node
 	struct _PARSE_node *	p_right;
 } PARSE_node_t;
 
+typedef const PARSE_node_t ** PARSE_tree_array_t;
 
-typedef const PARSE_node_t ** PARSE_tree_container_t;
+typedef struct _PARSE_tree_list
+{
+	PARSE_tree_array_t 	trees;
+	uint32_t			u32_num_trees;
+} PARSE_tree_list_t;
 
 /****************************************************************************************************
  *	F U N C T I O N S
@@ -32,10 +37,7 @@ typedef const PARSE_node_t ** PARSE_tree_container_t;
 
 void 							PARSE_init				(void);
 void 							PARSE_run_rdp			(void);
-const PARSE_tree_container_t 	PARSE_get_all_trees		(void);
-uint32_t						PARSE_get_num_trees		(void);
+const PARSE_tree_list_t *		PARSE_get_tree_list		(void);
 void 							PARSE_traverse_tree		(const PARSE_node_t *p_node, uint32_t u32_level, uint8_t side);
-
-
 
 #endif

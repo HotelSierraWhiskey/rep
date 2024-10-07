@@ -22,12 +22,10 @@
 
 typedef struct
 {
-	PARSE_node_t *				p_root;
-	const LEX_token_list_t *	p_token_list;
-	uint32_t 					u32_current_token_index;
-	uint32_t					u32_num_statements;
-	uint32_t					u32_num_trees;
-	PARSE_tree_container_t		trees;
+	const LEX_token_list_t *	p_token_list;				// The list of tokens, populated by lex
+	uint32_t 					u32_current_token_index;	// The index of the token currently being parsed
+	uint32_t					u32_num_statements;			// The number of statements found
+	PARSE_tree_list_t			tree_list;					// A container of parse trees
 } PARSE_info_t;
 
 typedef enum
@@ -83,8 +81,8 @@ void PARSE_init(void)
 	parse_info.p_token_list = LEX_get_token_list();
 	parse_info.u32_num_statements = LEX_get_num_statements();
 	parse_info.u32_current_token_index = 0;
-	parse_info.u32_num_trees = 0;
-	parse_info.trees = malloc(sizeof(PARSE_node_t *));
+	parse_info.tree_list.u32_num_trees = 0;
+	parse_info.tree_list.trees = malloc(sizeof(PARSE_node_t *));
 }
 
 /*
@@ -109,17 +107,9 @@ void PARSE_run_rdp(void)
 /*
  *	Get all parse trees
  */
-const PARSE_tree_container_t PARSE_get_all_trees (void)
+const PARSE_tree_list_t * PARSE_get_tree_list (void)
 {
-	return parse_info.trees;
-}
-
-/*
- *	Get the number of trees parsed
- */
-uint32_t PARSE_get_num_trees(void)
-{
-	return parse_info.u32_num_trees;
+	return &parse_info.tree_list;
 }
 
 void PARSE_traverse_tree(const PARSE_node_t *p_node, uint32_t u32_level, uint8_t u8_side)
@@ -200,8 +190,8 @@ static inline PARSE_node_t * PARSE_create_node (LEX_token_t * p_token, PARSE_nod
 static void PARSE_save_tree(const PARSE_node_t * p_root)
 {
 	ASSERT(p_root);
-	parse_info.trees = realloc(parse_info.trees, sizeof(PARSE_node_t *) * parse_info.u32_num_trees + 1);
-	parse_info.trees[parse_info.u32_num_trees++] = p_root;
+	parse_info.tree_list.trees = realloc(parse_info.tree_list.trees, sizeof(PARSE_node_t *) * parse_info.tree_list.u32_num_trees + 1);
+	parse_info.tree_list.trees[parse_info.tree_list.u32_num_trees++] = p_root;
 }
 
 /****************************************************************************************************

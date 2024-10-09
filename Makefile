@@ -3,11 +3,11 @@
 ##################################################
 CC = gcc
 
-DBGFLAGS = 	-DDEBUG_IO -DDEBUG_LEX -DDEBUG_PARSE -DBUILD_DEBUG
+DBGFLAGS = 	-DDEBUG_IO -DDEBUG_LEX -DDEBUG_PARSE -DDEBUG_CODE_GEN -DBUILD_DEBUG
 
 CFLAGS = -Wall -Wno-switch -g $(DBGFLAGS)
 COMMON_INC = -I.
-COMMON_SRCS = io_handler.c lex.c parse.c
+COMMON_SRCS = io_handler.c lex.c parse.c scratch_register.c code_gen.c
 
 ##################################################
 # Unity & Test Stuff

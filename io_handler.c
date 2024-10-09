@@ -16,9 +16,6 @@
 #define IO_ERR(fmt, ...)
 #endif
 
-#define IO_REP_EXT_LENGTH				(4)
-#define IO_MIN_REP_FILE_NAME_LENGTH		(IO_REP_EXT_LENGTH + 1)	// For example: a.rep
-
 /****************************************************************************************************
  *	S T A T I C   V A R I A B L E S
  ****************************************************************************************************/
@@ -47,6 +44,13 @@ STATUS_t IO_HANDLER_load_source_file(const char * kpc_fname)
 		return STATUS_FAILED;
 	}
 
+	// TODO: include failure mode in unit test
+	if (u32_file_name_length > IO_MAX_REP_FILE_NAME_LENGTH)
+	{
+		IO_ERR("File name too long\n");
+		return STATUS_FAILED;
+	}
+
 	if (strncmp(kpc_fname + (u32_file_name_length - IO_REP_EXT_LENGTH), ".rep", IO_REP_EXT_LENGTH) != 0)
 	{
 		IO_ERR("Invalid file\n");
@@ -58,6 +62,7 @@ STATUS_t IO_HANDLER_load_source_file(const char * kpc_fname)
 	FILE * 		file = fopen(kpc_fname, "rb");
 	int32_t 	i32_file_size;
 
+	strncpy(io_source_info.pc_source_file_name, kpc_fname, IO_MAX_REP_FILE_NAME_LENGTH);
 	io_source_info.pc_source_buffer = NULL;
 	io_source_info.u32_size = 0;
 

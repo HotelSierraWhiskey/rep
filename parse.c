@@ -1,4 +1,5 @@
 #include "parse.h"
+#include "scratch_register.h"
 
 /****************************************************************************************************
  *	D E F I N E S
@@ -43,13 +44,13 @@ typedef enum
 
 static const char * const pk_node_type_descriptors[PARSE_NODE_TYPE_NUM_TYPES] =
 {
-	[PARSE_NODE_TYPE_ID]				= "ID",
-	[PARSE_NODE_TYPE_EXPR_ADD]			= "EXPR_ADD",
-	[PARSE_NODE_TYPE_EXPR_SUBTRACT]		= "EXPR_SUBTRACT",
-	[PARSE_NODE_TYPE_EXPR_MULTIPLY]		= "EXPR_MULTIPLY",
-	[PARSE_NODE_TYPE_EXPR_DIVIDE]		= "EXPR_DIVIDE",
-	[PARSE_NODE_TYPE_EXPR_ASSIGNMENT]	= "EXPR_ASSIGNMENT",
-	[PARSE_NODE_TYPE_STATEMENT]			= "STATEMENT",
+	[PARSE_NODE_TYPE_ID]						= "ID",
+	[PARSE_NODE_TYPE_EXPR_TYPE_ADD]				= "EXPR_TYPE_ADD",
+	[PARSE_NODE_TYPE_EXPR_TYPE_SUBTRACT]		= "EXPR_TYPE_SUBTRACT",
+	[PARSE_NODE_TYPE_EXPR_TYPE_MULTIPLY]		= "EXPR_TYPE_MULTIPLY",
+	[PARSE_NODE_TYPE_EXPR_TYPE_DIVIDE]			= "EXPR_TYPE_DIVIDE",
+	[PARSE_NODE_TYPE_EXPR_TYPE_ASSIGNMENT]		= "EXPR_TYPE_ASSIGNMENT",
+	[PARSE_NODE_TYPE_STATEMENT_TYPE_ASSIGNMENT]	= "STATEMENT_TYPE_ASSIGNMENT",
 };
 
 /*
@@ -76,7 +77,7 @@ static void 						PARSE_consume_token		(void);
 static inline LEX_token_t * 		PARSE_get_current_token	(void);
 static inline LEX_token_t * 		PARSE_get_next_token	(void);
 static inline PARSE_node_t *		PARSE_create_node		(PARSE_node_type_t type, LEX_token_t * p_token, PARSE_node_t * p_left, PARSE_node_t * p_right);
-static void 						PARSE_append_tree		(const PARSE_node_t * p_root);
+static void 						PARSE_append_tree		(PARSE_node_t * p_root);
 
 /****************************************************************************************************
  *	F U N C T I O N S
@@ -118,7 +119,7 @@ void PARSE_run_rdp(void)
 /*
  *	Get all parse trees
  */
-const PARSE_tree_list_t * PARSE_get_tree_list (void)
+PARSE_tree_list_t * PARSE_get_tree_list (void)
 {
 	return &parse_info.tree_list;
 }
@@ -137,7 +138,7 @@ void PARSE_traverse_tree(const PARSE_node_t *p_node, uint32_t u32_level, uint8_t
 		return;
 	}
 
-	printf("%-20s", pk_node_type_descriptors[p_node->type]);
+	printf("%-30s", pk_node_type_descriptors[p_node->type]);
 
 	for (uint8_t i = 0; i < u32_level; i++)
 	{
@@ -193,6 +194,7 @@ static inline PARSE_node_t * PARSE_create_node (PARSE_node_type_t type, LEX_toke
 {
 	PARSE_node_t * p_node = (PARSE_node_t *)malloc(sizeof(PARSE_node_t));
 	p_node->type = type;
+	p_node->scratch_register = SCRATCH_REGISTER_ID_NONE;
 	strncpy(p_node->p_token.pc_lexeme, p_token->pc_lexeme, LEX_MAX_LEXEME_SIZE);
 	p_node->p_token.u32_row = p_token->u32_row;
 	p_node->p_token.u32_column = p_token->u32_column;
@@ -201,7 +203,7 @@ static inline PARSE_node_t * PARSE_create_node (PARSE_node_type_t type, LEX_toke
 	return p_node;
 }
 
-static void PARSE_append_tree(const PARSE_node_t * p_root)
+static void PARSE_append_tree(PARSE_node_t * p_root)
 {
 	ASSERT(p_root);
 	parse_info.tree_list.trees = realloc(parse_info.tree_list.trees, sizeof(PARSE_node_t *) * parse_info.tree_list.u32_num_trees + 1);
@@ -267,11 +269,11 @@ static PARSE_node_t * PARSE_term(void)
 
 		if (p_token->type == LEX_TOKEN_TYPE_OP_DIVIDE)
 		{
-			p_node = PARSE_create_node(PARSE_NODE_TYPE_EXPR_DIVIDE, &saved_token, p_node, PARSE_factor());
+			p_node = PARSE_create_node(PARSE_NODE_TYPE_EXPR_TYPE_DIVIDE, &saved_token, p_node, PARSE_factor());
 		}
 		else if (p_token->type == LEX_TOKEN_TYPE_OP_MULTIPLY)
 		{
-			p_node = PARSE_create_node(PARSE_NODE_TYPE_EXPR_MULTIPLY, &saved_token, p_node, PARSE_term());
+			p_node = PARSE_create_node(PARSE_NODE_TYPE_EXPR_TYPE_MULTIPLY, &saved_token, p_node, PARSE_term());
 		}
 		
 		p_token = PARSE_get_current_token();
@@ -298,11 +300,11 @@ static PARSE_node_t * PARSE_expression(void)
 
 		if (p_token->type == LEX_TOKEN_TYPE_OP_ADD)
 		{
-			p_node = PARSE_create_node(PARSE_NODE_TYPE_EXPR_ADD, &saved_token, p_node, PARSE_expression());
+			p_node = PARSE_create_node(PARSE_NODE_TYPE_EXPR_TYPE_ADD, &saved_token, p_node, PARSE_expression());
 		}
 		else if (p_token->type == LEX_TOKEN_TYPE_OP_SUBTRACT)
 		{
-			p_node = PARSE_create_node(PARSE_NODE_TYPE_EXPR_SUBTRACT, &saved_token, p_node, PARSE_term());
+			p_node = PARSE_create_node(PARSE_NODE_TYPE_EXPR_TYPE_SUBTRACT, &saved_token, p_node, PARSE_term());
 		}
 
 		p_token = PARSE_get_current_token();
@@ -326,7 +328,7 @@ static PARSE_node_t * PARSE_statement(void)
 	{
 		memcpy(&saved_token, p_token, sizeof(LEX_token_t));
 		PARSE_consume_token();
-		p_node = PARSE_create_node(PARSE_NODE_TYPE_STATEMENT, &saved_token, p_node, PARSE_expression());
+		p_node = PARSE_create_node(PARSE_NODE_TYPE_STATEMENT_TYPE_ASSIGNMENT, &saved_token, p_node, PARSE_expression());
 
 		if (PARSE_get_current_token()->type == LEX_TOKEN_TYPE_DELIM)
 		{

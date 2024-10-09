@@ -3,6 +3,7 @@
 #include "io_handler.h"
 #include "lex.h"
 #include "parse.h"
+#include "code_gen.h"
 
 /****************************************************************************************************
  *	D E F I N E S
@@ -52,4 +53,8 @@ int main(int argc, char** argv)
 
 	PARSE_init();
 	PARSE_run_rdp();
+
+	PARSE_tree_list_t * p_tree_list = PARSE_get_tree_list();
+
+	CODE_GEN_traverse_tree(p_tree_list->trees[0]);
 }

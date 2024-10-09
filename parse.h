@@ -9,6 +9,19 @@
 
 typedef enum
 {
+	PARSE_NODE_TYPE_ID,
+	PARSE_NODE_TYPE_EXPR_ADD,
+	PARSE_NODE_TYPE_EXPR_SUBTRACT,
+	PARSE_NODE_TYPE_EXPR_MULTIPLY,
+	PARSE_NODE_TYPE_EXPR_DIVIDE,
+	PARSE_NODE_TYPE_EXPR_ASSIGNMENT,
+	PARSE_NODE_TYPE_STATEMENT,
+	//////////////////////////////
+	PARSE_NODE_TYPE_NUM_TYPES,
+} PARSE_node_type_t;
+
+typedef enum
+{
 	PARSE_NODE_SIDE_ROOT = 0,
 	PARSE_NODE_SIDE_LEFT,
 	PARSE_NODE_SIDE_RIGHT,
@@ -18,6 +31,7 @@ typedef enum
 
 typedef struct _PARSE_node
 {
+	PARSE_node_type_t		type;
 	LEX_token_t				p_token;
 	struct _PARSE_node *	p_left;
 	struct _PARSE_node *	p_right;

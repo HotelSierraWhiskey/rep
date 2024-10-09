@@ -43,7 +43,6 @@ TEST(unit_parse, test_parse_init)
 
 	p_tree_list = PARSE_get_tree_list();
 
-	// TODO: Are these always equal?
 	TEST_ASSERT_EQUAL(p_tree_list->u32_num_trees, LEX_get_num_statements());
 
 	TEST_ASSERT_NOT_NULL(p_tree_list);

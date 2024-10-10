@@ -33,7 +33,7 @@ typedef enum
 typedef struct _PARSE_node
 {
 	PARSE_node_type_t		type;
-	LEX_token_t				p_token;
+	LEX_token_t *			p_token;
 	SCRATCH_REGISTER_id_t	scratch_register;
 	struct _PARSE_node *	p_left;
 	struct _PARSE_node *	p_right;

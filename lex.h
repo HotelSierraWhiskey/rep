@@ -50,10 +50,11 @@ typedef struct _LEX_token_list
  *	P U B L I C   F U N C T I O N S
  ****************************************************************************************************/
 
-STATUS_t 					LEX_init				(void);
-STATUS_t 					LEX_deinit				(void);
-void 						LEX_run_fsm				(void);
-const LEX_token_list_t *	LEX_get_token_list		(void);
-const uint32_t 				LEX_get_num_statements 	(void);
+STATUS_t 					LEX_init						(void);
+STATUS_t 					LEX_deinit						(void);
+void 						LEX_run_fsm						(void);
+const LEX_token_list_t *	LEX_get_token_list				(void);
+const uint32_t 				LEX_get_num_statements 			(void);
+const char * 				LEX_get_token_type_descriptor 	(const LEX_token_type_t k_token_type);
 
 #endif

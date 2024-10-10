@@ -16,7 +16,7 @@ typedef enum
 	CODE_GEN_SCRATCH_REGISTER_NUM_SCRATCH_REGISTERS
 } CODE_GEN_scratch_register_id_t;
 
-void CODE_GEN_traverse_tree	(PARSE_node_t *p_root);
-void CODE_GEN_handle_node	(PARSE_node_type_t expected_type, PARSE_node_t * p_node);
+void CODE_GEN_traverse_tree	(PARSE_node_t * p_root);
+void CODE_GEN_handle_node	(PARSE_node_t * p_node);
 
 #endif

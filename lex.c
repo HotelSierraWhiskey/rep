@@ -101,7 +101,6 @@ static LEX_token_type_t		LEX_token_type_from_lexeme						(void);
 /*
  *	Debug & helpers
  */
-static const char * 		LEX_get_token_type_descriptor					(const LEX_token_type_t k_token_type);
 static void 				LEX_fsm_report 									(void);
 static void					LEX_restore_defaults							(void);
 
@@ -264,6 +263,15 @@ const LEX_token_list_t * LEX_get_token_list(void)
 const uint32_t LEX_get_num_statements (void)
 {
 	return lex_info.u32_num_statements;
+}
+
+/*
+ *	Token description getter
+ */
+const char * LEX_get_token_type_descriptor (const LEX_token_type_t k_token_type)
+{
+	ASSERT(k_token_type < LEX_TOKEN_TYPE_NUM_TYPES)
+	return pk_token_type_descriptors[k_token_type];
 }
 
 /****************************************************************************************************
@@ -699,12 +707,6 @@ static bool LEX_handle_STATE_WAIT_SCANNING_CONTROL_CHAR(void)
 	}
 
 	return b_res;
-}
-
-static const char * LEX_get_token_type_descriptor (const LEX_token_type_t k_token_type)
-{
-	ASSERT(k_token_type < LEX_TOKEN_TYPE_NUM_TYPES)
-	return pk_token_type_descriptors[k_token_type];
 }
 
 static void LEX_fsm_report (void)

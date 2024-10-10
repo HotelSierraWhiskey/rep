@@ -152,7 +152,7 @@ void PARSE_traverse_tree(const PARSE_node_t *p_node, uint32_t u32_level, uint8_t
 		}
 	}
 
-	printf("%s\n", p_node->p_token.pc_lexeme);
+	printf("%s\n", p_node->p_token->pc_lexeme);
 
 	PARSE_traverse_tree(p_node->p_left, u32_level + 1, PARSE_NODE_SIDE_LEFT);
 	PARSE_traverse_tree(p_node->p_right, u32_level + 1, PARSE_NODE_SIDE_RIGHT);
@@ -195,11 +195,24 @@ static inline PARSE_node_t * PARSE_create_node (PARSE_node_type_t type, LEX_toke
 	PARSE_node_t * p_node = (PARSE_node_t *)malloc(sizeof(PARSE_node_t));
 	p_node->type = type;
 	p_node->scratch_register = SCRATCH_REGISTER_ID_NONE;
-	strncpy(p_node->p_token.pc_lexeme, p_token->pc_lexeme, LEX_MAX_LEXEME_SIZE);
-	p_node->p_token.u32_row = p_token->u32_row;
-	p_node->p_token.u32_column = p_token->u32_column;
+
+	// Lexemes are static arrays, do a deep copy
+	if (p_token != NULL)
+	{
+        p_node->p_token = (LEX_token_t *)malloc(sizeof(LEX_token_t));
+        strncpy(p_node->p_token->pc_lexeme, p_token->pc_lexeme, LEX_MAX_LEXEME_SIZE);
+        p_node->p_token->u32_row = p_token->u32_row;
+        p_node->p_token->u32_column = p_token->u32_column;
+        p_node->p_token->type = p_token->type;
+    } 
+	else
+	{
+        p_node->p_token = NULL;
+    }
+
 	p_node->p_left = p_left;
 	p_node->p_right = p_right;
+
 	return p_node;
 }
 
